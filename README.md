@@ -20,7 +20,8 @@ Grams on a pack-counted item (e.g. `5, 329 gr`) need the item's pack size, set u
 
 ## Setup
 
-1. Create a Supabase project. In the SQL editor run `supabase/migrations/0001_stock_opname.sql`,
+   then `supabase/seed.sql` (the 91 items and the 5 and 12 Oct 2026 counts from the spreadsheet),
+   then the remaining migrations in order (`0002_units_gr_ml.sql`: units in gr/ml).
    then `supabase/seed.sql` (the 91 items and the 5 and 12 Oct 2026 counts from the spreadsheet).
 2. In Supabase Auth, turn off public sign-ups and add an email + password user for each staff member.
 3. Copy `.env.example` to `.env.local` and fill in the two values from Supabase's **Connect** panel (`.env.local` tab).
