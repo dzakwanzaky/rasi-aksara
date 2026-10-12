@@ -22,8 +22,10 @@ export async function middleware(request: NextRequest) {
         },
       },
     });
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user && !isPublic) return NextResponse.redirect(new URL("/login", request.url));
+    // getSession reads the cookie (and refreshes it when expired) without a round trip to Supabase on every
+    // click. It only decides where to route; the database's row-level security still checks every query.
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session && !isPublic) return NextResponse.redirect(new URL("/login", request.url));
   } catch (e) {
     console.error("Supabase session check failed", e);
     if (!isPublic) return NextResponse.redirect(new URL("/setup", request.url));

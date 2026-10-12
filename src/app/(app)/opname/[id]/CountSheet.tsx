@@ -29,9 +29,9 @@ export function CountSheet({ session, items, initialLines }: { session: Session;
     const batch = [...pending.current.entries()];
     pending.current.clear();
     if (!batch.length) return;
-    const { data: { user } } = await supabase.auth.getUser();
+    const { data: { session: auth } } = await supabase.auth.getSession();
     const rows = batch.map(([item_id, l]) => ({
-      session_id: session.id, item_id, ...l, updated_by: user?.id, updated_at: new Date().toISOString(),
+      session_id: session.id, item_id, ...l, updated_by: auth?.user.id, updated_at: new Date().toISOString(),
     }));
     const { error } = await supabase.from("opname_lines").upsert(rows, { onConflict: "session_id,item_id" });
     if (error) {
