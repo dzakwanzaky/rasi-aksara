@@ -116,3 +116,16 @@ h2.big { font-size: 1.45rem; margin: 2px 0 0; text-wrap: balance; }
 .pill.warn { background: var(--warn-soft); color: var(--warn); }
 .pill.bad { background: var(--bad-soft); color: var(--bad); }
 .minform input { width: 64px; font-family: var(--mono); text-align: right; padding: 5px 8px; border: 1px solid var(--line); border-radius: 6px; background: var(--bg); }
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-block: 14px 6px; }
+.tile { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; display: grid; gap: 2px; }
+.tile.warn { background: var(--warn-soft); border-color: transparent; }
+.tile-n { font-family: var(--display); font-size: 1.7rem; font-weight: 700; line-height: 1.1; }
+.tile-n small { font-size: .9rem; color: var(--muted); font-weight: 500; }
+.tile-l { color: var(--muted); font-size: .85rem; }
+.use-row { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 14px; border-bottom: 1px solid var(--line); }
+.use-row:last-child { border-bottom: 0; }
+.use-val { text-align: right; white-space: nowrap; }
+.use-n { font-family: var(--display); font-size: 1.25rem; font-weight: 700; }
+details.group summary { cursor: pointer; padding-block: 6px; }
+.namecols { columns: 3 180px; column-gap: 24px; padding: 0; margin: 0; list-style: none; }
+.namecols li { padding-block: 3px; break-inside: avoid; font-size: .92rem; }

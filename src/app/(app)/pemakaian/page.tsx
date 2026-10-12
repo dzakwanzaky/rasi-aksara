@@ -36,6 +36,9 @@ export default async function Pemakaian({ searchParams }: { searchParams: Promis
   const notCounted = rows.filter((r) => r.status === "notcounted");
   const check = rows.filter((r) => r.status === "up" || r.status === "unreadable");
 
+  const counted = rows.length - notCounted.length;
+  const qty = (n: number | null, unit: string) => (n == null || Number.isNaN(n) ? "–" : `${formatQty(n)} ${unit}`.trim());
+
   return (
     <>
       <div className="bar">
@@ -46,63 +49,88 @@ export default async function Pemakaian({ searchParams }: { searchParams: Promis
         <span className="spacer" />
         <DatePick dates={sessions.map((s) => ({ value: s.count_date, label: dateLabel(s.count_date) }))} current={session.count_date} />
       </div>
-      <p className="help">
-        Terpakai = stok kemarin + barang masuk − sisa hari ini. {usedCount} bahan terpakai
-        {check.length ? `, ${check.length} perlu dicek` : ""}.
-      </p>
 
-      {check.length > 0 && (
-        <div className="note">
-          <b>Perlu dicek</b>
-          <p className="small">
-            Kalau stok naik, biasanya ada belanjaan yang belum dicatat. Isi &quot;barang masuk&quot; di{" "}
-            <Link href={`/hitung?date=${session.count_date}`}>Hitung</Link>.
-          </p>
-          <ul>
-            {check.map((r) => (
-              <li key={r.item.id}>
-                {r.item.name}:{" "}
-                {r.status === "up"
-                  ? `naik ${formatQty(-r.used)} ${r.item.unit} dari kemarin`
-                  : `"${r.l?.tersedia ?? r.l?.masuk}" tidak terbaca sebagai angka`}
-              </li>
-            ))}
-          </ul>
+      {counted === 0 ? (
+        <div className="start">
+          <h2 className="big">Hitungan tanggal ini belum diisi</h2>
+          <p className="muted">Pemakaian muncul setelah sisa stok tiap bahan dihitung. Pilih tanggal lain di atas untuk lihat riwayat.</p>
+          <Link className="btn primary bigbtn" href={`/hitung?date=${session.count_date}`}>Isi hitungan</Link>
         </div>
-      )}
+      ) : (
+        <>
+          <div className="tiles">
+            <div className="tile"><span className="tile-n">{counted}<small>/{rows.length}</small></span><span className="tile-l">bahan dihitung</span></div>
+            <div className="tile"><span className="tile-n">{usedCount}</span><span className="tile-l">bahan terpakai</span></div>
+            {check.length > 0 && <div className="tile warn"><span className="tile-n">{check.length}</span><span className="tile-l">perlu dicek</span></div>}
+          </div>
+          <p className="help">Terpakai = stok kemarin + barang masuk − sisa hari ini.</p>
 
-      {CATEGORIES.map((c) => {
-        const g = rows.filter((r) => r.item.category === c && r.status !== "notcounted");
-        if (!g.length) return null;
-        return (
-          <section className="group" key={c}>
-            <h3>{c}</h3>
-            <ul className="list">
-              {g.map((r) => (
-                <li key={r.item.id} className="list-row">
-                  <div>
-                    <b>{r.item.name}</b>
-                    {r.sisa != null && !Number.isNaN(r.sisa) && (
-                      <span className="muted small"> · sisa {formatQty(r.sisa)} {r.item.unit}</span>
-                    )}
+          {check.length > 0 && (
+            <div className="note">
+              <b>Perlu dicek</b>
+              <p className="small">
+                Kalau stok naik, biasanya ada belanjaan yang belum dicatat. Isi &quot;barang masuk&quot; di{" "}
+                <Link href={`/hitung?date=${session.count_date}`}>Hitung</Link>.
+              </p>
+              <ul>
+                {check.map((r) => (
+                  <li key={r.item.id}>
+                    {r.item.name}:{" "}
+                    {r.status === "up"
+                      ? `naik ${formatQty(-r.used)} ${r.item.unit} dari kemarin`
+                      : `"${r.l?.tersedia ?? r.l?.masuk}" tidak terbaca sebagai angka`}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {CATEGORIES.map((c) => {
+            const g = rows.filter((r) => r.item.category === c && r.status !== "notcounted");
+            if (!g.length) return null;
+            return (
+              <section className="group" key={c}>
+                <h3>{c}</h3>
+                <ul className="list">
+                  {g.map((r) => (
+                    <li key={r.item.id} className="use-row">
+                      <div>
+                        <b>{r.item.name}</b>
+                        <div className="muted small">
+                          kemarin {qty(parseQty(r.l?.awal, r.item), r.item.unit)}
+                          {parseQty(r.l?.masuk, r.item) ? ` · masuk ${qty(parseQty(r.l?.masuk, r.item), r.item.unit)}` : ""}
+                          {" · "}sisa {qty(r.sisa, r.item.unit)}
+                        </div>
+                      </div>
+                      <div className="use-val">
+                        {r.status === "used" && <><span className="use-n">{formatQty(r.used)}</span> <span className="muted small">{r.item.unit} terpakai</span></>}
+                        {r.status === "same" && <span className="muted small">tidak terpakai</span>}
+                        {(r.status === "up" || r.status === "unreadable") && <span className="pill warn">Perlu dicek</span>}
+                        {r.status === "noprev" && <span className="muted small">belum ada data kemarin</span>}
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            );
+          })}
+
+          {notCounted.length > 0 && (
+            <details className="group">
+              <summary className="muted">{notCounted.length} bahan belum dihitung di tanggal ini</summary>
+              {CATEGORIES.map((c) => {
+                const g = notCounted.filter((r) => r.item.category === c);
+                if (!g.length) return null;
+                return (
+                  <div key={c}>
+                    <h3>{c}</h3>
+                    <ul className="namecols">{g.map((r) => <li key={r.item.id}>{r.item.name}</li>)}</ul>
                   </div>
-                  {r.status === "used" && <span className="pill">Terpakai {formatQty(r.used)} {r.item.unit}</span>}
-                  {r.status === "same" && <span className="muted small">Tidak terpakai</span>}
-                  {r.status === "up" && <span className="pill warn">Perlu dicek</span>}
-                  {r.status === "unreadable" && <span className="pill warn">Perlu dicek</span>}
-                  {r.status === "noprev" && <span className="muted small">Tidak ada data kemarin</span>}
-                </li>
-              ))}
-            </ul>
-          </section>
-        );
-      })}
-
-      {notCounted.length > 0 && (
-        <details className="group">
-          <summary className="muted">{notCounted.length} bahan belum dihitung di tanggal ini</summary>
-          <p className="muted small">{notCounted.map((r) => r.item.name).join(", ")}</p>
-        </details>
+                );
+              })}
+            </details>
+          )}
+        </>
       )}
 
       <div className="row" style={{ marginTop: 28 }}>
