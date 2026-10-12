@@ -1,11 +1,10 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { listSessions, loadItems, loadLines } from "@/lib/data";
-import { formatQty, parseQty } from "@/lib/qty";
-import { CATEGORIES, dateLabel, type Item } from "@/lib/types";
+import { formatQty } from "@/lib/qty";
+import { restockNeeds, restockText } from "@/lib/restock";
+import { CATEGORIES, dateLabel } from "@/lib/types";
 import { CopyList } from "./CopyList";
-
-type Need = { item: Item; sisa: number; reason: "habis" | "menipis" };
 
 export default async function Belanja() {
   const supabase = await createClient();
@@ -14,26 +13,10 @@ export default async function Belanja() {
   if (!latest) return <p className="empty">Daftar belanja muncul setelah ada hitungan stok pertama.</p>;
 
   const lines = await loadLines(supabase, latest.id);
-  const needs: Need[] = [];
-  let counted = 0;
-  for (const item of items) {
-    const sisa = parseQty(lines.get(item.id)?.tersedia, item);
-    if (sisa == null || Number.isNaN(sisa)) continue;
-    counted++;
-    if (sisa <= 0) needs.push({ item, sisa: 0, reason: "habis" });
-    else if (item.min_stock && sisa < item.min_stock) needs.push({ item, sisa, reason: "menipis" });
-  }
+  const { needs, counted } = restockNeeds(items, lines);
   const withMin = items.filter((i) => i.min_stock && i.min_stock > 0).length;
 
-  const text = [
-    `Belanja Rasi Aksara (stok ${dateLabel(latest.count_date)})`,
-    ...CATEGORIES.flatMap((c) => {
-      const g = needs.filter((n) => n.item.category === c);
-      return g.length
-        ? ["", `*${c}*`, ...g.map((n) => `- ${n.item.name}: ${n.reason === "habis" ? "HABIS" : `sisa ${formatQty(n.sisa)} ${n.item.unit}`}${n.item.min_stock ? ` (min ${formatQty(n.item.min_stock)})` : ""}`)]
-        : [];
-    }),
-  ].join("\n");
+  const text = restockText(needs, latest.count_date);
 
   return (
     <>

@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
-import Link from "next/link";
+import { startTransition, useEffect, useMemo, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { formatQty, parseQty, type Line } from "@/lib/qty";
 import { CATEGORIES, type Item } from "@/lib/types";
+import { finishCount } from "../actions";
 
 type Lines = Record<number, Partial<Line>>;
 
@@ -20,6 +20,7 @@ export function CountFlow(props: {
   const [openMasuk, setOpenMasuk] = useState<Set<number>>(() =>
     new Set(Object.entries(props.initialLines).filter(([, l]) => String(l.masuk ?? "").trim()).map(([id]) => Number(id))),
   );
+  const [finishing, setFinishing] = useState(false);
   const [saveState, setSaveState] = useState<"" | "saving" | "saved" | "error">("");
 
   // One upsert per pause in typing, for all items changed in that pause.
@@ -157,9 +158,22 @@ export function CountFlow(props: {
 
       <div className="donebar">
         <span className="muted">{done < items.length ? `${items.length - done} bahan belum dihitung` : "Semua bahan sudah dihitung"}</span>
-        <Link className="btn primary" href={`/pemakaian?date=${props.date}`} onClick={() => { clearTimeout(timer.current); void flush(); }}>
-          Selesai, lihat hasil
-        </Link>
+        <button
+          className="btn primary"
+          disabled={finishing}
+          onClick={async () => {
+            // Save the last keystrokes before the purchase list is built from them.
+            setFinishing(true);
+            clearTimeout(timer.current);
+            await flush();
+            const form = new FormData();
+            form.set("count_date", props.date);
+            form.set("session_id", sessionId);
+            startTransition(() => finishCount(form));
+          }}
+        >
+          {finishing ? "Menyimpan…" : "Selesai, lihat hasil"}
+        </button>
       </div>
     </div>
   );

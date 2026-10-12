@@ -34,3 +34,13 @@ npm test       # quantity parsing
 npm run lint   # type check
 npm run build
 ```
+
+## Restock alerts (optional)
+
+When staff tap **Selesai** after a count, the app can send the purchase list to a chat.
+Set one pair of environment variables in Vercel, then redeploy:
+
+- WhatsApp via [Fonnte](https://fonnte.com): `FONNTE_TOKEN` (device token) and `ALERT_WA_TARGET` (phone number or group id)
+- Telegram: `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID`
+
+With neither set, nothing is sent.

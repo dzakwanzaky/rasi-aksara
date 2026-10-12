@@ -4,7 +4,9 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { CATEGORIES, type Category } from "@/lib/types";
-import { todayJakarta } from "@/lib/data";
+import { loadItems, loadLines, todayJakarta } from "@/lib/data";
+import { notify, notifyConfigured } from "@/lib/notify";
+import { restockNeeds, restockText } from "@/lib/restock";
 
 export async function signOut() {
   const supabase = await createClient();
@@ -101,4 +103,20 @@ export async function setMinStock(form: FormData) {
   await supabase.from("items").update({ min_stock: numOrNull(form.get("min_stock")) }).eq("id", Number(form.get("id")));
   revalidatePath("/bahan");
   revalidatePath("/belanja");
+}
+
+/** Called when staff finish a count: sends the purchase list to the cafe's chat, if one is configured. */
+export async function finishCount(form: FormData) {
+  const date = String(form.get("count_date"));
+  const sessionId = String(form.get("session_id"));
+  if (notifyConfigured()) {
+    const supabase = await createClient();
+    const [items, lines] = await Promise.all([loadItems(supabase), loadLines(supabase, sessionId)]);
+    const { needs } = restockNeeds(items, lines);
+    if (needs.length) {
+      const result = await notify(restockText(needs, date));
+      if (result.error) console.error("Restock alert failed:", result.error);
+    }
+  }
+  redirect(`/pemakaian?date=${date}`);
 }
