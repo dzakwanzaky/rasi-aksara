@@ -129,3 +129,35 @@ h2.big { font-size: 1.45rem; margin: 2px 0 0; text-wrap: balance; }
 details.group summary { cursor: pointer; padding-block: 6px; }
 .namecols { columns: 3 180px; column-gap: 24px; padding: 0; margin: 0; list-style: none; }
 .namecols li { padding-block: 3px; break-inside: avoid; font-size: .92rem; }
+
+/* Phones: staff count on their phone, so keep the header short, targets big, and inputs at 16px (no iOS zoom). */
+.chip { min-height: 34px; }
+.linkbtn { padding-block: 8px; }
+@media (max-width: 640px) {
+  header.top { flex-wrap: nowrap; align-items: center; padding-block: 12px 4px; }
+  h1 { font-size: 1.25rem; }
+  h1 small { font-size: .68rem; }
+  header.top .who { display: none; }
+  nav.tabs { gap: 0; }
+  nav.tabs a { flex: 1; text-align: center; padding: 12px 2px; font-size: .92rem; }
+  input, select, textarea, .sisa input, .qty input, .minform input, label.f input, label.f select { font-size: 16px; }
+  .btn { min-height: 40px; display: inline-flex; align-items: center; justify-content: center; }
+  .btn.small { min-height: 38px; padding-inline: 12px; }
+  .chip { min-height: 36px; padding-inline: 13px; }
+  .items .it { grid-template-columns: minmax(0, 1fr); gap: 8px; padding: 12px; }
+  .items .it > .row, .minform { justify-content: space-between; flex-wrap: nowrap; gap: 8px; }
+  .minform { flex: 1; }
+  .minform input { flex: 1; width: auto; min-width: 0; padding-block: 8px; }
+  .use-row { align-items: flex-start; }
+}
+/* Fixed tab bar height so the sticky count bar sits right under it. */
+nav.tabs { height: 52px; padding-top: 0; align-items: stretch; }
+nav.tabs a { display: flex; align-items: center; justify-content: center; padding-block: 0; }
+.countbar { top: 52px; }
+@media (max-width: 640px) {
+  /* One swipeable row of filters so the sticky bar leaves room for the cards. */
+  .countbar { gap: 8px; padding-block: 8px 6px; }
+  .countbar .filters { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin-inline: -16px; padding-inline: 16px; }
+  .countbar .filters > * { flex: 0 0 auto; }
+  .countbar .filters input[type=search] { flex: 0 0 150px; }
+}

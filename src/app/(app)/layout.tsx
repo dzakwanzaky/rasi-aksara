@@ -10,7 +10,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <header className="top">
         <h1><small>Rasi Aksara</small>Stok Opname</h1>
         <form action={signOut} className="row">
-          <span className="muted">{session?.user.email}</span>
+          <span className="muted who">{session?.user.email}</span>
           <button className="btn small">Keluar akun</button>
         </form>
       </header>
