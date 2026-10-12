@@ -161,3 +161,7 @@ nav.tabs a { display: flex; align-items: center; justify-content: center; paddin
   .countbar .filters > * { flex: 0 0 auto; }
   .countbar .filters input[type=search] { flex: 0 0 150px; }
 }
+.log-row { display: grid; grid-template-columns: 3.2em minmax(0, 1fr); gap: 10px; padding: 10px 14px; border-bottom: 1px solid var(--line); }
+.log-row:last-child { border-bottom: 0; }
+.log-time { font-family: var(--mono); font-size: .82rem; color: var(--muted); padding-top: 2px; }
+@media (max-width: 640px) { nav.tabs a { font-size: .85rem; } }
