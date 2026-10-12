@@ -6,14 +6,8 @@
   --display: "Bricolage Grotesque", ui-sans-serif, system-ui, sans-serif;
   --body: "Instrument Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
   --mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
-}
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #121815; --surface: #1a221e; --ink: #e6ece8; --muted: #97a69e; --line: #2c3832;
-    --accent: #7fc2a6; --accent-ink: #0f1713; --accent-soft: #213229;
-    --warn: #e2b25e; --warn-soft: #352a17; --bad: #ec8b7a; --bad-soft: #3a201b;
-    color-scheme: dark;
-  }
+  /* Always light, whatever the phone is set to: easier for staff to read (Zaky, 12 Okt 2026). */
+  color-scheme: only light;
 }
 * { box-sizing: border-box; }
 body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 15px; line-height: 1.45; }
