@@ -26,9 +26,9 @@ Pages: `/opname` (start or open a count), `/opname/[id]` (counting sheet, autosa
 1. Create a Supabase project. In the SQL editor run `supabase/migrations/0001_stock_opname.sql`,
    then `supabase/seed.sql` (the 91 items and the 5 and 12 Oct 2026 counts from the spreadsheet).
 2. In Supabase Auth, turn off public sign-ups and add an email + password user for each staff member.
-3. Copy `.env.example` to `.env.local` and fill in the project URL and anon key.
+3. Copy `.env.example` to `.env.local` and fill in the two values from Supabase's **Connect** panel (`.env.local` tab).
 4. `npm install && npm run dev`, then open http://localhost:3000.
-5. Deploy: import the repo in Vercel and set the same two environment variables.
+5. Deploy: import the repo in Vercel and paste the same two lines into Environment Variables.
 
 ## Checks
 
