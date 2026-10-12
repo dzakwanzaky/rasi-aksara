@@ -2,7 +2,8 @@
 
 Sistem operasional harian kafe Rasi Aksara. Modul pertama: **stok opname**.
 
-Built with Next.js (App Router) and Supabase (Postgres + Auth), hosted on Vercel.
+Built with Next.js (App Router) and Supabase (Postgres + Auth), hosted on Vercel. Every push to `main` deploys.
+The UI is always light, even on phones set to dark mode, so staff can read it easily.
 
 ## Stok opname
 
