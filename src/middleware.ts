@@ -1,13 +1,18 @@
 import { createServerClient } from "@supabase/ssr";
-import { supabaseKey, supabaseUrl } from "@/lib/supabase/env";
 import { NextResponse, type NextRequest } from "next/server";
+import { configProblem, supabaseKey, supabaseUrl } from "@/lib/supabase/env";
 
 // Refreshes the Supabase session cookie and sends signed-out visitors to /login.
 export async function middleware(request: NextRequest) {
+  const isPublic = request.nextUrl.pathname.startsWith("/login") || request.nextUrl.pathname.startsWith("/setup");
+  if (configProblem()) {
+    if (isPublic) return NextResponse.next();
+    return NextResponse.redirect(new URL("/setup", request.url));
+  }
+
   let response = NextResponse.next({ request });
-  const supabase = createServerClient(
-    supabaseUrl, supabaseKey,
-    {
+  try {
+    const supabase = createServerClient(supabaseUrl, supabaseKey, {
       cookies: {
         getAll: () => request.cookies.getAll(),
         setAll: (toSet) => {
@@ -16,14 +21,12 @@ export async function middleware(request: NextRequest) {
           toSet.forEach(({ name, value, options }) => response.cookies.set(name, value, options));
         },
       },
-    },
-  );
-
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user && !request.nextUrl.pathname.startsWith("/login")) {
-    const url = request.nextUrl.clone();
-    url.pathname = "/login";
-    return NextResponse.redirect(url);
+    });
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user && !isPublic) return NextResponse.redirect(new URL("/login", request.url));
+  } catch (e) {
+    console.error("Supabase session check failed", e);
+    if (!isPublic) return NextResponse.redirect(new URL("/setup", request.url));
   }
   return response;
 }
