@@ -106,7 +106,7 @@ export function CountFlow(props: {
               <div className="card-head">
                 <div>
                   <b>{i.name}</b>
-                  <span className="muted"> · {i.unit || "satuan?"}</span>
+                  <span className="unit-tag">{i.unit || "satuan?"}</span>
                 </div>
                 <span className="tag">{i.category}</span>
               </div>
@@ -114,7 +114,7 @@ export function CountFlow(props: {
                 Kemarin: {l.awal ? (kemarin != null && !Number.isNaN(kemarin) ? `${formatQty(kemarin)} ${i.unit}` : l.awal) : "belum ada data"}
               </p>
               <label className="sisa">
-                <span>Sisa sekarang</span>
+                <span>{i.unit ? `Sisa berapa ${i.unit}?` : "Sisa sekarang"}</span>
                 <input
                   id={`sisa-${i.id}`}
                   inputMode="decimal"
@@ -128,7 +128,7 @@ export function CountFlow(props: {
               </label>
               {showMasuk ? (
                 <label className="sisa masuk">
-                  <span>Barang masuk hari ini</span>
+                  <span>{i.unit ? `Masuk berapa ${i.unit}?` : "Barang masuk hari ini"}</span>
                   <input
                     id={`masuk-${i.id}`}
                     inputMode="decimal"

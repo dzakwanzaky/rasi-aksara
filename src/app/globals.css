@@ -165,3 +165,4 @@ nav.tabs a { display: flex; align-items: center; justify-content: center; paddin
 .log-row:last-child { border-bottom: 0; }
 .log-time { font-family: var(--mono); font-size: .82rem; color: var(--muted); padding-top: 2px; }
 @media (max-width: 640px) { nav.tabs a { font-size: .85rem; } }
+.unit-tag { display: inline-block; margin-left: 6px; font-size: .78rem; font-weight: 600; padding: 1px 8px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); vertical-align: 2px; }
