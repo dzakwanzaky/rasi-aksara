@@ -6,7 +6,7 @@ export const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? p
 /** Names what is wrong with the Supabase settings, or null when they look usable. */
 export function configProblem(): string | null {
   if (!supabaseUrl) return "NEXT_PUBLIC_SUPABASE_URL belum diisi.";
-  if (!/^https:\/\/[a-z0-9-]+\.supabase\.co\/?$/.test(supabaseUrl))
+  if (!/^(https:\/\/[a-z0-9-]+\.supabase\.co|http:\/\/(localhost|127\.0\.0\.1):\d+)\/?$/.test(supabaseUrl))
     return `NEXT_PUBLIC_SUPABASE_URL harus berupa https://xxxx.supabase.co (sekarang: "${supabaseUrl.slice(0, 40)}").`;
   if (!supabaseKey) return "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY belum diisi.";
   return null;

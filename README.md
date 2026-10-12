@@ -6,20 +6,17 @@ Built with Next.js (App Router) and Supabase (Postgres + Auth), hosted on Vercel
 
 ## Stok opname
 
-Follows the weekly opname sheet the cafe already uses:
+Staff count what is left of every item at the end of each shift.
 
-| Kolom | Arti |
-| --- | --- |
-| Awal | Stock at the start of the period. Filled automatically from the last count's Tersedia. |
-| Masuk | What came in (purchases) since the last count. |
-| Tersedia | Physical count today. |
-| Keluar | Usage, calculated: Awal + Masuk − Tersedia. |
+| Page | For | What it shows |
+| --- | --- | --- |
+| `/hitung` | Staff | One card per item: yesterday's amount and a single "sisa sekarang" box, plus optional "barang masuk". Autosaves. |
+| `/belanja` | Buyer | Items that ran out or are below their minimum stock, with a "copy for WhatsApp" button. |
+| `/pemakaian` | Owner | How much of each item was used that day (yesterday + barang masuk − sisa), with anything odd explained in words. CSV download. |
+| `/bahan` | Owner | Item list, units, pack sizes and minimum stock. |
 
 Quantities are saved exactly as typed (`3, 3/4`, `2,3kg`, `5, 329 gr`) and read by `src/lib/qty.ts`.
 Grams on a pack-counted item (e.g. `5, 329 gr`) need the item's pack size, set under **Bahan**.
-
-Pages: `/opname` (start or open a count), `/opname/[id]` (counting sheet, autosaves, CSV download),
-`/riwayat` (usage or stock per week), `/bahan` (item list).
 
 ## Setup
 

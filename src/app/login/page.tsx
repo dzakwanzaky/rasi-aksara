@@ -21,7 +21,7 @@ export default function LoginPage() {
     setBusy(false);
     if (error) setError("Email atau kata sandi salah. Minta akun ke pemilik kafe jika belum punya.");
     else {
-      router.replace("/opname");
+      router.replace("/hitung");
       router.refresh();
     }
   }

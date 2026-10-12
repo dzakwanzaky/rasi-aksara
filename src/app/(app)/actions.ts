@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { CATEGORIES, type Category } from "@/lib/types";
+import { todayJakarta } from "@/lib/data";
 
 export async function signOut() {
   const supabase = await createClient();
@@ -11,49 +12,48 @@ export async function signOut() {
   redirect("/login");
 }
 
-/** Starts a count; Awal is carried over from the latest count's Tersedia. */
-export async function createSession(form: FormData) {
+/** Opens the count for a date (today by default), creating it if needed.
+ * Each item's starting stock is carried over from the latest earlier count's "sisa". */
+export async function startCount(form: FormData) {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  const countDate = String(form.get("count_date") || new Date().toISOString().slice(0, 10));
-  const note = String(form.get("note") ?? "").trim();
+  const { data: { session: auth } } = await supabase.auth.getSession();
+  const countDate = String(form.get("count_date") || todayJakarta());
+
+  const { data: existing } = await supabase
+    .from("opname_sessions").select("id").eq("count_date", countDate).limit(1).maybeSingle();
+  if (existing) redirect(`/hitung?date=${countDate}`);
 
   const { data: prev } = await supabase
-    .from("opname_sessions")
-    .select("id")
-    .order("count_date", { ascending: false })
-    .order("created_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    .from("opname_sessions").select("id")
+    .lt("count_date", countDate)
+    .order("count_date", { ascending: false }).order("created_at", { ascending: false })
+    .limit(1).maybeSingle();
 
-  const { data: session, error } = await supabase
+  const { data: created, error } = await supabase
     .from("opname_sessions")
-    .insert({ count_date: countDate, note, created_by: user?.id })
-    .select("id")
-    .single();
-  if (error) throw new Error("Gagal membuat opname: " + error.message);
+    .insert({ count_date: countDate, created_by: auth?.user.id })
+    .select("id").single();
+  if (error) throw new Error("Gagal membuat hitungan: " + error.message);
 
   if (prev) {
     const { data: lines } = await supabase
-      .from("opname_lines")
-      .select("item_id, tersedia")
-      .eq("session_id", prev.id)
-      .not("tersedia", "is", null);
+      .from("opname_lines").select("item_id, tersedia")
+      .eq("session_id", prev.id).not("tersedia", "is", null);
     const carried = (lines ?? [])
       .filter((l) => String(l.tersedia).trim() !== "")
-      .map((l) => ({ session_id: session.id, item_id: l.item_id, awal: l.tersedia, updated_by: user?.id }));
+      .map((l) => ({ session_id: created.id, item_id: l.item_id, awal: l.tersedia, updated_by: auth?.user.id }));
     if (carried.length) await supabase.from("opname_lines").insert(carried);
   }
 
-  revalidatePath("/opname");
-  redirect(`/opname/${session.id}`);
+  revalidatePath("/hitung");
+  redirect(`/hitung?date=${countDate}`);
 }
 
 export async function deleteSession(form: FormData) {
   const supabase = await createClient();
   await supabase.from("opname_sessions").delete().eq("id", String(form.get("id")));
-  revalidatePath("/opname");
-  revalidatePath("/riwayat");
+  revalidatePath("/pemakaian");
+  redirect("/pemakaian");
 }
 
 const numOrNull = (v: FormDataEntryValue | null) => {
@@ -93,4 +93,12 @@ export async function archiveItem(form: FormData) {
   await supabase.from("items").update({ active: false }).eq("id", Number(form.get("id")));
   revalidatePath("/bahan");
   redirect("/bahan");
+}
+
+/** Quick edit of an item's minimum stock from the item list. */
+export async function setMinStock(form: FormData) {
+  const supabase = await createClient();
+  await supabase.from("items").update({ min_stock: numOrNull(form.get("min_stock")) }).eq("id", Number(form.get("id")));
+  revalidatePath("/bahan");
+  revalidatePath("/belanja");
 }

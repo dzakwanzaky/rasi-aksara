@@ -2,7 +2,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { formatQty } from "@/lib/qty";
 import { CATEGORIES, sortItems, type Item } from "@/lib/types";
-import { archiveItem, saveItem } from "../actions";
+import { archiveItem, saveItem, setMinStock } from "../actions";
 
 export default async function Bahan({ searchParams }: { searchParams: Promise<{ edit?: string }> }) {
   const { edit } = await searchParams;
@@ -51,6 +51,10 @@ export default async function Bahan({ searchParams }: { searchParams: Promise<{ 
         </form>
       )}
 
+      <p className="help">
+        Isi <b>Min</b> (stok minimum) untuk tiap bahan. Kalau sisa di bawah angka ini, bahan masuk ke daftar Belanja.
+      </p>
+
       {!items.length && <p className="empty">Belum ada bahan. Tekan Tambah bahan untuk mulai.</p>}
       {CATEGORIES.map((c) => {
         const group = items.filter((i) => i.category === c);
@@ -70,7 +74,15 @@ export default async function Bahan({ searchParams }: { searchParams: Promise<{ 
                       {i.min_stock ? ` · min ${formatQty(i.min_stock)}` : ""}
                     </small>
                   </div>
-                  <Link className="btn small" href={`/bahan?edit=${i.id}`}>Ubah</Link>
+                  <div className="row">
+                    <form action={setMinStock} className="row minform">
+                      <input type="hidden" name="id" value={i.id} />
+                      <label className="small muted" htmlFor={`min-${i.id}`}>Min</label>
+                      <input id={`min-${i.id}`} name="min_stock" inputMode="decimal" defaultValue={i.min_stock ?? ""} placeholder="–" />
+                      <button className="btn small">Simpan</button>
+                    </form>
+                    <Link className="btn small" href={`/bahan?edit=${i.id}`}>Ubah</Link>
+                  </div>
                 </div>
               ))}
             </div>
