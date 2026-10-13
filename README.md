@@ -22,7 +22,7 @@ Grams on a pack-counted item (e.g. `5, 329 gr`) need the item's pack size, set u
 ## Setup
 
    then `supabase/seed.sql` (the 91 items and the 5 and 12 Oct 2026 counts from the spreadsheet),
-   then the remaining migrations in order (`0002_units_gr_ml.sql`, `0003_packaging_split.sql`, `0004_audit_log.sql`: change log shown on the Log tab, `0005_kitchen_units.sql`).
+   then the remaining migrations in order (`0002_units_gr_ml.sql`, `0003_packaging_split.sql`, `0004_audit_log.sql`: change log shown on the Log tab, `0005_kitchen_units.sql`, `0006_maxxtea_tarik.sql`).
    then `supabase/seed.sql` (the 91 items and the 5 and 12 Oct 2026 counts from the spreadsheet).
 2. In Supabase Auth, turn off public sign-ups and add an email + password user for each staff member.
 3. Copy `.env.example` to `.env.local` and fill in the two values from Supabase's **Connect** panel (`.env.local` tab).
