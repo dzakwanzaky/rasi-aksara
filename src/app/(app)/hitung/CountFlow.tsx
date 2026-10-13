@@ -31,22 +31,57 @@ export function CountFlow(props: {
     pending.current.clear();
     if (!batch.length) return;
     const { data: { session: auth } } = await supabase.auth.getSession();
-    const rows = batch.map(([item_id, l]) => ({
-      session_id: sessionId, item_id, ...l, updated_by: auth?.user.id, updated_at: new Date().toISOString(),
-    }));
-    const { error } = await supabase.from("opname_lines").upsert(rows, { onConflict: "session_id,item_id" });
-    if (error) {
+    // Send only the boxes this person changed, so two phones filling different boxes of the
+    // same item never wipe each other's numbers. Rows with the same changed boxes go together.
+    const groups = new Map<string, Record<string, unknown>[]>();
+    for (const [item_id, l] of batch) {
+      const key = Object.keys(l).sort().join(",");
+      groups.set(key, [...(groups.get(key) ?? []), {
+        session_id: sessionId, item_id, ...l, updated_by: auth?.user.id, updated_at: new Date().toISOString(),
+      }]);
+    }
+    const results = await Promise.all(
+      [...groups.values()].map((rows) => supabase.from("opname_lines").upsert(rows, { onConflict: "session_id,item_id" })),
+    );
+    if (results.some((r) => r.error)) {
       batch.forEach(([id, l]) => pending.current.set(id, { ...l, ...pending.current.get(id) }));
       setSaveState("error");
       timer.current = setTimeout(flush, 3000);
     } else setSaveState(pending.current.size ? "saving" : "saved");
   }
+
+  // Show what other phones save, live. A box someone is still typing in here keeps their own text.
+  const typing = useRef<{ itemId: number; field: string } | null>(null);
+  useEffect(() => {
+    const channel = supabase
+      .channel(`count-${sessionId}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "opname_lines", filter: `session_id=eq.${sessionId}` },
+        (msg) => {
+          const row = msg.new as Partial<Line> & { item_id?: number };
+          if (!row?.item_id) return;
+          const mine = pending.current.get(row.item_id) ?? {};
+          setLines((prev) => {
+            const cur = { ...prev[row.item_id!] };
+            for (const f of ["awal", "masuk", "tersedia"] as const) {
+              const busy = f in mine || (typing.current?.itemId === row.item_id && typing.current?.field === f);
+              if (!busy && f in row) cur[f] = row[f] ?? null;
+            }
+            return { ...prev, [row.item_id!]: cur };
+          });
+          if (String(row.masuk ?? "").trim()) setOpenMasuk((prev) => (prev.has(row.item_id!) ? prev : new Set(prev).add(row.item_id!)));
+        },
+      )
+      .subscribe();
+    return () => { void supabase.removeChannel(channel); };
+  }, [supabase, sessionId]);
   useEffect(() => () => { clearTimeout(timer.current); void flush(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   function edit(itemId: number, field: "tersedia" | "masuk", value: string) {
     const next = { ...lines[itemId], [field]: value };
     setLines((prev) => ({ ...prev, [itemId]: next }));
-    pending.current.set(itemId, { awal: next.awal ?? null, masuk: next.masuk ?? null, tersedia: next.tersedia ?? null });
+    pending.current.set(itemId, { ...pending.current.get(itemId), [field]: value });
     setSaveState("saving");
     clearTimeout(timer.current);
     timer.current = setTimeout(flush, 600);
@@ -123,6 +158,8 @@ export function CountFlow(props: {
                   value={String(l.tersedia ?? "")}
                   className={Number.isNaN(sisa) ? "bad" : undefined}
                   onChange={(e) => edit(i.id, "tersedia", e.target.value)}
+                  onFocus={() => { typing.current = { itemId: i.id, field: "tersedia" }; }}
+                  onBlur={() => { typing.current = null; }}
                 />
                 <span className="unit">{i.unit}</span>
               </label>
@@ -137,6 +174,8 @@ export function CountFlow(props: {
                     value={String(l.masuk ?? "")}
                     className={Number.isNaN(masuk) ? "bad" : undefined}
                     onChange={(e) => edit(i.id, "masuk", e.target.value)}
+                    onFocus={() => { typing.current = { itemId: i.id, field: "masuk" }; }}
+                    onBlur={() => { typing.current = null; }}
                   />
                   <span className="unit">{i.unit}</span>
                 </label>

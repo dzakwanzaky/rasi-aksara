@@ -35,6 +35,8 @@ export async function startCount(form: FormData) {
     .from("opname_sessions")
     .insert({ count_date: countDate, created_by: auth?.user.id })
     .select("id").single();
+  // Someone else started this date's count a moment ago: open theirs.
+  if (error?.code === "23505") redirect(`/hitung?date=${countDate}`);
   if (error) throw new Error("Gagal membuat hitungan: " + error.message);
 
   if (prev) {
