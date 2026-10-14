@@ -14,10 +14,10 @@ const clock = (iso: string | null | undefined) =>
   iso ? new Date(iso).toLocaleTimeString("id-ID", { timeZone: "Asia/Jakarta", hour: "2-digit", minute: "2-digit" }) : "";
 
 export function ChecklistFlow(props: {
-  date: string; initialSheet: SheetId; hourNow: number; me: string; initialEntries: Entries;
+  date: string; initialSheet: SheetId; hourNow: number; me: string; initialEntries: Entries; readOnly: boolean;
   prevClosing: { dateText: string; text: string } | null;
 }) {
-  const { date, hourNow, me } = props;
+  const { date, hourNow, me, readOnly } = props;
   const supabase = useMemo(() => createClient(), []);
   const [entries, setEntries] = useState<Entries>(props.initialEntries);
   const [sheetId, setSheetId] = useState<SheetId>(props.initialSheet);
@@ -135,9 +135,16 @@ export function ChecklistFlow(props: {
         </div>
       </div>
 
-      <p className="autosave-note">
-        <b>✓ Tersimpan otomatis.</b> Tinggal centang. Nama kamu dan jamnya tercatat sendiri sebagai paraf.
-      </p>
+      {readOnly ? (
+        <p className="note">Ini riwayat hari yang sudah lewat, jadi hanya bisa dilihat dan tidak bisa diubah.</p>
+      ) : (
+        <p className="autosave-note">
+          <b>✓ Tersimpan otomatis.</b> Tinggal centang. Nama kamu dan jamnya tercatat sendiri sebagai paraf.
+        </p>
+      )}
+
+      {/* A past day is history: every box and tick below is locked (Zaky, 14 Okt 2026). */}
+      <fieldset className="ck-lock" disabled={readOnly}>
 
       {sheet.sections.map((s) => (
         <section key={s.title} className="ck-section">
@@ -153,11 +160,11 @@ export function ChecklistFlow(props: {
               ))}
             </ul>
           ) : s.kind === "hourly" ? (
-            <Hourly section={s} entries={entries} hourNow={hourNow} tick={tick} />
+            <Hourly section={s} entries={entries} hourNow={hourNow} tick={tick} readOnly={readOnly} />
           ) : (
             <ul className="ck-list">
               {s.items.map((i) => (
-                <Item key={i.key} sheet={sheet} item={i} tick={tick} field={field}>
+                <Item key={i.key} sheet={sheet} item={i} tick={tick} field={field} readOnly={readOnly}>
                   {sheet.id === "opening" && i.key === "baca-closing" && (
                     <div className="note ck-note">
                       {props.prevClosing ? (
@@ -181,8 +188,9 @@ export function ChecklistFlow(props: {
 
       <section className="ck-section">
         <h3>{sheet.noteLabel}</h3>
-        <TextBox k={noteKey(sheet.id)} multiline placeholder="Tulis catatan untuk shift berikutnya…" {...field} />
+        <TextBox k={noteKey(sheet.id)} multiline placeholder={readOnly ? "Tidak ada catatan." : "Tulis catatan untuk shift berikutnya…"} {...field} />
       </section>
+      </fieldset>
     </div>
   );
 }
@@ -205,8 +213,8 @@ function TextBox({ k, multiline, placeholder, numeric, entries, type, typing }: 
     : <input className="ck-input" autoComplete="off" inputMode={numeric ? "decimal" : undefined} {...common} onChange={(e) => type(k, e.target.value)} />;
 }
 
-function Item({ sheet, item, tick, field, children }: {
-  sheet: Sheet; item: CheckItem; tick: (keys: string[], done: boolean) => void; field: Field; children?: React.ReactNode;
+function Item({ sheet, item, tick, field, readOnly, children }: {
+  sheet: Sheet; item: CheckItem; tick: (keys: string[], done: boolean) => void; field: Field; readOnly: boolean; children?: React.ReactNode;
 }) {
   const k = itemKey(sheet.id, item.key);
   const e = field.entries[k] ?? {};
@@ -234,15 +242,15 @@ function Item({ sheet, item, tick, field, children }: {
         {e.done && <span className="ck-by">✓ {e.done_by || "?"} · {clock(e.done_at)}</span>}
         <span className="spacer" />
         {item.link && <Link className="linkbtn" href={item.link.href}>{item.link.label} →</Link>}
-        {!showNote && <button className="linkbtn" onClick={() => setShowNote(true)}>+ Catatan</button>}
+        {!showNote && !readOnly && <button className="linkbtn" onClick={() => setShowNote(true)}>+ Catatan</button>}
       </div>
       {showNote && <TextBox k={itemNoteKey(k)} placeholder="Catatan (kalau ada)" {...field} />}
     </li>
   );
 }
 
-function Hourly({ section, entries, hourNow, tick }: {
-  section: Section; entries: Entries; hourNow: number; tick: (keys: string[], done: boolean) => void;
+function Hourly({ section, entries, hourNow, tick, readOnly }: {
+  section: Section; entries: Entries; hourNow: number; tick: (keys: string[], done: boolean) => void; readOnly: boolean;
 }) {
   const hours = HOURS.filter((h) => h <= hourNow);
   if (!hours.length) return <p className="muted">Hourly check mulai jam {String(HOURS[0]).padStart(2, "0")}.00.</p>;
@@ -282,7 +290,7 @@ function Hourly({ section, entries, hourNow, tick }: {
                   );
                 })}
               </ul>
-              {done.length < keys.length && (
+              {done.length < keys.length && !readOnly && (
                 <button className="btn primary ck-all" onClick={() => tick(keys.filter((k) => !entries[k]?.done), true)}>
                   Semua sudah dicek
                 </button>

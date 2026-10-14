@@ -77,6 +77,7 @@ export default async function Checklist({ searchParams }: { searchParams: Promis
         hourNow={isToday ? now.hour : 24}
         me={accountLabel(session?.user.email)}
         initialEntries={entries}
+        readOnly={!isToday}
         prevClosing={prev ? { dateText: dateLabel(prev.check_date as string), text: prev.value as string } : null}
       />
     </>

@@ -1,4 +1,5 @@
 -- Shift checklist (Zaky, 14 Okt 2026): opening, operasional + hourly check, ganti shift, closing.
+-- Safe to run again: running it a second time only refreshes the rules below.
 -- The checklist itself lives in the app (src/lib/checklist.ts). This table keeps what staff ticked
 -- and typed, one row per date per item, e.g. key 'opening:pintu' or 'operasional:jam10:parkir'.
 
@@ -17,10 +18,14 @@ create table if not exists checklist_entries (
 alter table checklist_entries enable row level security;
 drop policy if exists "staff read checklist" on checklist_entries;
 create policy "staff read checklist" on checklist_entries for select to authenticated using (true);
+-- Only today's checklist can be filled in; earlier days are history and stay as they were (Zaky, 14 Okt 2026).
 drop policy if exists "staff add checklist" on checklist_entries;
-create policy "staff add checklist" on checklist_entries for insert to authenticated with check (true);
+create policy "staff add checklist" on checklist_entries for insert to authenticated
+  with check (check_date >= (now() at time zone 'Asia/Jakarta')::date);
 drop policy if exists "staff edit checklist" on checklist_entries;
-create policy "staff edit checklist" on checklist_entries for update to authenticated using (true) with check (true);
+create policy "staff edit checklist" on checklist_entries for update to authenticated
+  using (check_date >= (now() at time zone 'Asia/Jakarta')::date)
+  with check (check_date >= (now() at time zone 'Asia/Jakarta')::date);
 
 -- Phones see each other's ticks live.
 do $$

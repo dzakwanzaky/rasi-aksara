@@ -263,3 +263,6 @@ main > .eyebrow:first-child, .wrap > nav + .eyebrow { margin-top: 14px; }
   nav.tabs a { font-size: .78rem; }
 }
 .ck-hours .ck-by { margin: 0 0 0 38px; }
+.ck-lock { border: 0; margin: 0; padding: 0; min-width: 0; }
+.ck-lock:disabled .ck-row { cursor: default; }
+.ck-lock:disabled input, .ck-lock:disabled textarea { opacity: 1; color: var(--ink); -webkit-text-fill-color: var(--ink); }
