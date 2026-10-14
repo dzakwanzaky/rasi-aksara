@@ -5,6 +5,7 @@ import { dateLabel } from "@/lib/types";
 import { accountLabel } from "@/lib/staff";
 import { SHEETS, noteKey, sheetForTime, type Entry, type SheetId } from "@/lib/checklist";
 import { ChecklistFlow } from "./ChecklistFlow";
+import { DatePick } from "./DatePick";
 
 const shiftDay = (date: string, days: number) => {
   const d = new Date(date + "T00:00:00Z");
@@ -65,6 +66,7 @@ export default async function Checklist({ searchParams }: { searchParams: Promis
           <p className="eyebrow">Checklist shift</p>
           <h2 className="big">{isToday ? "Hari ini" : dateLabel(date)}</h2>
           {isToday && <p className="muted">{dateLabel(date)}</p>}
+          <DatePick date={date} today={today} />
         </div>
         {next <= today
           ? <Link className="btn small" href={`/checklist?date=${next}&lembar=${sheet}`} aria-label="Hari berikutnya">›</Link>
