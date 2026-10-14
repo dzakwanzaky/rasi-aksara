@@ -28,7 +28,7 @@ export default async function Hitung({ searchParams }: { searchParams: Promise<{
         </form>
         {last && (
           <p className="muted">
-            Hitungan terakhir: <Link href={`/pemakaian?date=${last.count_date}`}>{dateLabel(last.count_date)}</Link>
+            Hitungan terakhir: <Link href={`/riwayat/${last.count_date}`}>{dateLabel(last.count_date)}</Link>
           </p>
         )}
       </div>

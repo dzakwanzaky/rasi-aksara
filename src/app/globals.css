@@ -166,3 +166,19 @@ nav.tabs a { display: flex; align-items: center; justify-content: center; paddin
 .log-time { font-family: var(--mono); font-size: .82rem; color: var(--muted); padding-top: 2px; }
 @media (max-width: 640px) { nav.tabs a { font-size: .85rem; } }
 .unit-tag { display: inline-block; margin-left: 6px; font-size: .78rem; font-weight: 600; padding: 1px 8px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); vertical-align: 2px; }
+/* Riwayat */
+.back { display: inline-block; margin-block: 12px 4px; color: var(--accent); font-weight: 600; text-decoration: none; padding-block: 6px; }
+.daynav { display: grid; grid-template-columns: 44px 1fr 44px; align-items: center; gap: 8px; text-align: center; margin-bottom: 4px; }
+.daynav .btn { font-size: 1.4rem; line-height: 1; padding: 6px 0; }
+.days { list-style: none; padding: 0; margin: 14px 0; display: grid; gap: 8px; }
+.daycard { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px 16px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; text-decoration: none; }
+.daycard:active { background: var(--accent-soft); }
+.chev { font-size: 1.6rem; color: var(--muted); line-height: 1; }
+.itemlink { text-decoration: none; }
+.itemlink:hover b { text-decoration: underline; }
+/* The whole row is the tap target for its item/date link. */
+.use-row { position: relative; }
+.use-row .itemlink::after { content: ""; position: absolute; inset: 0; }
+.use-row:has(.itemlink):active { background: var(--accent-soft); }
+.days { margin-top: 14px; }
+main > .eyebrow:first-child, .wrap > nav + .eyebrow { margin-top: 14px; }

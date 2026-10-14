@@ -56,8 +56,8 @@ export async function startCount(form: FormData) {
 export async function deleteSession(form: FormData) {
   const supabase = await createClient();
   await supabase.from("opname_sessions").delete().eq("id", String(form.get("id")));
-  revalidatePath("/pemakaian");
-  redirect("/pemakaian");
+  revalidatePath("/riwayat");
+  redirect("/riwayat");
 }
 
 const numOrNull = (v: FormDataEntryValue | null) => {
@@ -120,5 +120,5 @@ export async function finishCount(form: FormData) {
       if (result.error) console.error("Restock alert failed:", result.error);
     }
   }
-  redirect(`/pemakaian?date=${date}`);
+  redirect(`/riwayat/${date}`);
 }
