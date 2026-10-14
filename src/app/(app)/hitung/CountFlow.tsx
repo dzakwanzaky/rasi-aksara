@@ -17,9 +17,6 @@ export function CountFlow(props: {
   const [cat, setCat] = useState<string>("");
   const [onlyOpen, setOnlyOpen] = useState(false);
   const [q, setQ] = useState("");
-  const [openMasuk, setOpenMasuk] = useState<Set<number>>(() =>
-    new Set(Object.entries(props.initialLines).filter(([, l]) => String(l.masuk ?? "").trim()).map(([id]) => Number(id))),
-  );
   const [finishing, setFinishing] = useState(false);
   const [saveState, setSaveState] = useState<"" | "saving" | "saved" | "error">("");
 
@@ -70,7 +67,6 @@ export function CountFlow(props: {
             }
             return { ...prev, [row.item_id!]: cur };
           });
-          if (String(row.masuk ?? "").trim()) setOpenMasuk((prev) => (prev.has(row.item_id!) ? prev : new Set(prev).add(row.item_id!)));
         },
       )
       .subscribe();
@@ -120,9 +116,9 @@ export function CountFlow(props: {
       </div>
 
       <p className="help">
-        <b>Stok terakhir</b> = hasil hitung {props.prevDateText ?? "sebelumnya"}. Pagi: cek stoknya dan isi{" "}
-        <b>barang masuk</b> kalau ada kiriman. Akhir shift: tulis <b>sisa</b> tiap bahan
-        (boleh <code>3 1/2</code> atau <code>3,5</code>, kalau habis tulis <code>0</code>).
+        Tiap bahan punya 3 baris: <b>1</b> stok semalam = hasil hitung {props.prevDateText ?? "sebelumnya"} (otomatis),{" "}
+        <b>2</b> barang masuk hari ini (pagi, kalau ada kiriman), <b>3</b> sisa di akhir shift. Boleh tulis <code>3 1/2</code> atau{" "}
+        <code>3,5</code>; kalau habis tulis <code>0</code>.
       </p>
 
       {visible.length === 0 && (
@@ -136,7 +132,6 @@ export function CountFlow(props: {
           const sisa = parseQty(l.tersedia, i);
           const masuk = parseQty(l.masuk, i);
           const unreadable = Number.isNaN(sisa) || Number.isNaN(masuk);
-          const showMasuk = openMasuk.has(i.id);
           return (
             <li key={i.id} className={`card${isDone(i) ? " done" : ""}`}>
               <div className="card-head">
@@ -146,33 +141,25 @@ export function CountFlow(props: {
                 </div>
                 <span className="tag">{i.category}</span>
               </div>
-              <p className="laststock">
-                Stok terakhir:{" "}
-                {l.awal ? <b>{kemarin != null && !Number.isNaN(kemarin) ? `${formatQty(kemarin)} ${i.unit}` : l.awal}</b> : <span className="muted">belum ada data</span>}
-              </p>
-              <label className="sisa">
-                <span>{i.unit ? `Sisa berapa ${i.unit}?` : "Sisa sekarang"}</span>
-                <input
-                  id={`sisa-${i.id}`}
-                  inputMode="decimal"
-                  autoComplete="off"
-                  placeholder="–"
-                  value={String(l.tersedia ?? "")}
-                  className={Number.isNaN(sisa) ? "bad" : undefined}
-                  onChange={(e) => edit(i.id, "tersedia", e.target.value)}
-                  onFocus={() => { typing.current = { itemId: i.id, field: "tersedia" }; }}
-                  onBlur={() => { typing.current = null; }}
-                />
-                <span className="unit">{i.unit}</span>
-              </label>
-              {showMasuk ? (
-                <label className="sisa masuk">
-                  <span>{i.unit ? `Masuk berapa ${i.unit}?` : "Barang masuk hari ini"}</span>
+              <div className="steps">
+                <div className="step">
+                  <span className="step-l">
+                    <span className="step-n">1</span>Stok semalam
+                  </span>
+                  <span className="step-v">
+                    {l.awal ? (kemarin != null && !Number.isNaN(kemarin) ? formatQty(kemarin) : l.awal) : "–"}
+                  </span>
+                  <span className="unit">{i.unit}</span>
+                </div>
+                <label className="step">
+                  <span className="step-l">
+                    <span className="step-n">2</span>Masuk hari ini
+                  </span>
                   <input
                     id={`masuk-${i.id}`}
                     inputMode="decimal"
                     autoComplete="off"
-                    placeholder="–"
+                    placeholder="0"
                     value={String(l.masuk ?? "")}
                     className={Number.isNaN(masuk) ? "bad" : undefined}
                     onChange={(e) => edit(i.id, "masuk", e.target.value)}
@@ -181,11 +168,36 @@ export function CountFlow(props: {
                   />
                   <span className="unit">{i.unit}</span>
                 </label>
-              ) : (
-                <button className="linkbtn" onClick={() => setOpenMasuk(new Set(openMasuk).add(i.id))}>
-                  + Ada barang masuk hari ini?
-                </button>
-              )}
+                <label className="step">
+                  <span className="step-l">
+                    <span className="step-n">3</span>Sisa akhir shift
+                  </span>
+                  <input
+                    id={`sisa-${i.id}`}
+                    inputMode="decimal"
+                    autoComplete="off"
+                    placeholder="–"
+                    value={String(l.tersedia ?? "")}
+                    className={Number.isNaN(sisa) ? "bad" : undefined}
+                    onChange={(e) => edit(i.id, "tersedia", e.target.value)}
+                    onFocus={() => { typing.current = { itemId: i.id, field: "tersedia" }; }}
+                    onBlur={() => { typing.current = null; }}
+                  />
+                  <span className="unit">{i.unit}</span>
+                </label>
+              </div>
+              {(() => {
+                const ok = (x: number | null): x is number => x != null && !Number.isNaN(x);
+                const expected = ok(kemarin) && !Number.isNaN(masuk) ? kemarin + (masuk ?? 0) : null;
+                if (ok(sisa) && expected != null) {
+                  const used = expected - sisa;
+                  return used >= -1e-9
+                    ? <p className="calc">Terpakai hari ini: <b>{formatQty(used)} {i.unit}</b></p>
+                    : <p className="calc warn">Sisa lebih banyak {formatQty(-used)} {i.unit} dari seharusnya. Ada barang masuk yang belum diisi?</p>;
+                }
+                if (expected != null && masuk) return <p className="calc">Seharusnya ada sekarang: <b>{formatQty(expected)} {i.unit}</b></p>;
+                return null;
+              })()}
               {unreadable && (
                 <p className="warn small">
                   Angka ini belum bisa dibaca{i.pack_size ? "" : " (isi ukuran kemasan di Bahan untuk gram/ml)"}. Coba tulis

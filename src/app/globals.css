@@ -184,3 +184,18 @@ nav.tabs a { display: flex; align-items: center; justify-content: center; paddin
 main > .eyebrow:first-child, .wrap > nav + .eyebrow { margin-top: 14px; }
 .laststock { margin: 0; font-size: .95rem; }
 .laststock b { font-family: var(--mono); font-weight: 600; }
+/* Count card: last night (read-only) / today's deliveries / end-of-shift count, one row each */
+.steps { display: grid; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+.step { display: grid; grid-template-columns: minmax(0, 1fr) 84px 3em; gap: 6px; align-items: center; padding: 8px 10px; border-bottom: 1px solid var(--line); }
+.step:last-child { border-bottom: 0; }
+.step:first-child { background: var(--bg); }
+.step-l { display: flex; gap: 6px; font-weight: 600; font-size: .9rem; align-items: center; }
+.step-n { flex: none; width: 22px; height: 22px; border-radius: 999px; background: var(--accent-soft); color: var(--accent); font-size: .75rem; display: grid; place-items: center; }
+.step-v { font-family: var(--mono); font-size: 1.1rem; text-align: right; padding-right: 10px; }
+.step input { min-width: 0; width: 100%; font-family: var(--mono); font-size: 1.1rem; text-align: right; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); }
+.step input.bad { border-color: var(--bad); }
+.step .unit { color: var(--muted); font-size: .85rem; overflow-wrap: anywhere; }
+.calc { margin: 0; font-size: .88rem; color: var(--muted); }
+.calc b { color: var(--ink); font-family: var(--mono); }
+.calc.warn { color: var(--warn); }
+@media (max-width: 640px) { .step input { font-size: 16px; } }
