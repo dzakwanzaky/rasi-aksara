@@ -22,6 +22,9 @@ export function CountFlow(props: {
 
   // One upsert per pause in typing, for all items changed in that pause.
   const pending = useRef<Map<number, Partial<Line>>>(new Map());
+  // Per box: "saving" while it waits to be sent, "error" if sending failed. Absent means saved.
+  const [boxState, setBoxState] = useState<Record<string, "saving" | "error">>({});
+  const boxKeys = (batch: [number, Partial<Line>][]) => batch.flatMap(([id, l]) => Object.keys(l).map((f) => `${id}:${f}`));
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
   async function flush() {
     const batch = [...pending.current.entries()];
@@ -43,8 +46,17 @@ export function CountFlow(props: {
     if (results.some((r) => r.error)) {
       batch.forEach(([id, l]) => pending.current.set(id, { ...l, ...pending.current.get(id) }));
       setSaveState("error");
+      setBoxState((prev) => ({ ...prev, ...Object.fromEntries(boxKeys(batch).map((k) => [k, "error" as const])) }));
       timer.current = setTimeout(flush, 3000);
-    } else setSaveState(pending.current.size ? "saving" : "saved");
+    } else {
+      setSaveState(pending.current.size ? "saving" : "saved");
+      const waiting = new Set(boxKeys([...pending.current.entries()]));
+      setBoxState((prev) => {
+        const next = { ...prev };
+        for (const k of boxKeys(batch)) if (!waiting.has(k)) delete next[k];
+        return next;
+      });
+    }
   }
 
   // Show what other phones save, live. A box someone is still typing in here keeps their own text.
@@ -79,6 +91,7 @@ export function CountFlow(props: {
     setLines((prev) => ({ ...prev, [itemId]: next }));
     pending.current.set(itemId, { ...pending.current.get(itemId), [field]: value });
     setSaveState("saving");
+    setBoxState((prev) => ({ ...prev, [`${itemId}:${field}`]: "saving" }));
     clearTimeout(timer.current);
     timer.current = setTimeout(flush, 600);
   }
@@ -115,6 +128,10 @@ export function CountFlow(props: {
         </div>
       </div>
 
+      <p className="autosave-note">
+        <b>✓ Tersimpan otomatis.</b> Setiap angka langsung tersimpan begitu diketik, tidak perlu tekan tombol apa pun.
+        Tombol <b>Selesai</b> di bawah cukup ditekan sekali, di akhir shift setelah semua bahan dihitung.
+      </p>
       <p className="help">
         Tiap bahan punya 3 baris: <b>1</b> stok semalam = hasil hitung {props.prevDateText ?? "sebelumnya"} (otomatis),{" "}
         <b>2</b> barang masuk hari ini (pagi, kalau ada kiriman), <b>3</b> sisa di akhir shift. Boleh tulis <code>3 1/2</code> atau{" "}
@@ -167,6 +184,7 @@ export function CountFlow(props: {
                     onBlur={() => { typing.current = null; }}
                   />
                   <span className="unit">{i.unit}</span>
+                  <BoxState state={boxState[`${i.id}:masuk`]} filled={String(l.masuk ?? "").trim() !== ""} />
                 </label>
                 <label className="step">
                   <span className="step-l">
@@ -184,6 +202,7 @@ export function CountFlow(props: {
                     onBlur={() => { typing.current = null; }}
                   />
                   <span className="unit">{i.unit}</span>
+                  <BoxState state={boxState[`${i.id}:tersedia`]} filled={String(l.tersedia ?? "").trim() !== ""} />
                 </label>
               </div>
               {(() => {
@@ -215,6 +234,8 @@ export function CountFlow(props: {
           className="btn primary"
           disabled={finishing}
           onClick={async () => {
+            const left = items.length - done;
+            if (left > 0 && !window.confirm(`Masih ada ${left} bahan yang belum dihitung. Tetap selesai sekarang?\n\nIsian kamu sudah tersimpan otomatis, jadi tidak perlu tekan Selesai untuk menyimpan.`)) return;
             // Save the last keystrokes before the purchase list is built from them.
             setFinishing(true);
             clearTimeout(timer.current);
@@ -225,9 +246,15 @@ export function CountFlow(props: {
             startTransition(() => finishCount(form));
           }}
         >
-          {finishing ? "Menyimpan…" : "Selesai, lihat hasil"}
+          {finishing ? "Menyimpan…" : "Selesai hitung"}
         </button>
       </div>
     </div>
   );
+}
+
+function BoxState({ state, filled }: { state?: "saving" | "error"; filled: boolean }) {
+  if (state === "saving") return <span className="boxstate saving">Menyimpan…</span>;
+  if (state === "error") return <span className="boxstate error">Belum tersimpan, mencoba lagi</span>;
+  return filled ? <span className="boxstate ok">✓ Tersimpan</span> : null;
 }

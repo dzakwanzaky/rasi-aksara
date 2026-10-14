@@ -214,3 +214,10 @@ main > .eyebrow:first-child, .wrap > nav + .eyebrow { margin-top: 14px; }
 .unit-tag.off { background: var(--line); color: var(--muted); }
 .notice.ok { color: var(--accent); }
 .steps-list { padding-left: 1.2em; display: grid; gap: 6px; }
+/* Autosave: say it up front, and show it on every box */
+.autosave-note { background: var(--accent-soft); color: var(--ink); border-radius: 10px; padding: 10px 12px; font-size: .88rem; margin: 10px 0 0; }
+.autosave-note b:first-child { color: var(--accent); }
+.boxstate { grid-column: 1 / -1; justify-self: end; font-size: .75rem; margin-top: -4px; }
+.boxstate.ok { color: var(--accent); }
+.boxstate.saving { color: var(--muted); }
+.boxstate.error { color: var(--bad); }
