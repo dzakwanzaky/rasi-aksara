@@ -199,3 +199,18 @@ main > .eyebrow:first-child, .wrap > nav + .eyebrow { margin-top: 14px; }
 .calc b { color: var(--ink); font-family: var(--mono); }
 .calc.warn { color: var(--warn); }
 @media (max-width: 640px) { .step input { font-size: 16px; } }
+/* Staff page */
+.staff-form { display: grid; gap: 12px; max-width: 420px; }
+.check { display: flex; gap: 8px; align-items: center; font-size: .9rem; }
+.check input { width: 20px; height: 20px; }
+.staff-list { list-style: none; margin: 0; padding: 0; }
+.staff-list li { border-top: 1px solid var(--line); padding: 12px 0; display: grid; gap: 6px; }
+.staff-list li.off { opacity: .6; }
+.staff-list p { margin: 0; }
+.staff-head { display: flex; gap: 8px; flex-wrap: wrap; align-items: baseline; }
+.staff-list details summary { cursor: pointer; color: var(--accent); font-weight: 600; font-size: .88rem; padding: 6px 0; }
+.staff-list details .row { margin-top: 8px; }
+.staff-list details input[name="password"] { flex: 1; min-width: 0; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; }
+.unit-tag.off { background: var(--line); color: var(--muted); }
+.notice.ok { color: var(--accent); }
+.steps-list { padding-left: 1.2em; display: grid; gap: 6px; }

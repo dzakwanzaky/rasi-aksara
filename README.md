@@ -22,7 +22,9 @@ Grams on a pack-counted item (e.g. `5, 329 gr`) need the item's pack size, set u
 ## Setup
 
    then `supabase/seed.sql` (the 91 items and the 5 and 12 Oct 2026 counts from the spreadsheet),
-   then the remaining migrations in order (`0002_units_gr_ml.sql`, `0003_packaging_split.sql`, `0004_audit_log.sql`: change log shown on the Log tab, `0005_kitchen_units.sql`, `0006_maxxtea_tarik.sql`, `0007_concurrent_counts.sql`: one count per date + live updates).
+   then the remaining migrations in order (`0002_units_gr_ml.sql`, `0003_packaging_split.sql`, `0004_audit_log.sql`: change log shown on the Log tab, `0005_kitchen_units.sql`, `0006_maxxtea_tarik.sql`, `0007_concurrent_counts.sql`: one count per date + live updates, `0008_staff_admins.sql`: who may open the Staff page).
+
+**Staff accounts.** Staff log in with a username, not an email. Admins add them on the Staff page (button in the header), which needs `SUPABASE_SECRET_KEY` (Supabase secret / service_role key) set in Vercel as a server-only environment variable. Usernames map to `<username>@rasiaksara.local` in Supabase Auth; accounts are created confirmed, so no invite email is sent.
    then `supabase/seed.sql` (the 91 items and the 5 and 12 Oct 2026 counts from the spreadsheet).
 2. In Supabase Auth, turn off public sign-ups and add an email + password user for each staff member.
 3. Copy `.env.example` to `.env.local` and fill in the two values from Supabase's **Connect** panel (`.env.local` tab).

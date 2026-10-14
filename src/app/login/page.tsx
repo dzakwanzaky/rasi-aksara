@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
+import { loginEmail } from "@/lib/staff";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -15,11 +16,11 @@ export default function LoginPage() {
     setBusy(true);
     setError("");
     const { error } = await createClient().auth.signInWithPassword({
-      email: String(form.get("email")),
+      email: loginEmail(String(form.get("username"))),
       password: String(form.get("password")),
     });
     setBusy(false);
-    if (error) setError("Email atau kata sandi salah. Minta akun ke pemilik kafe jika belum punya.");
+    if (error) setError("Username atau kata sandi salah. Minta akun ke pemilik kafe jika belum punya.");
     else {
       router.replace("/hitung");
       router.refresh();
@@ -32,7 +33,7 @@ export default function LoginPage() {
         <h1><small>Rasi Aksara</small>Masuk</h1>
       </header>
       <form className="panel" onSubmit={onSubmit} style={{ display: "grid", gap: 12 }}>
-        <label className="f">Email<input id="email" name="email" type="email" autoComplete="email" required /></label>
+        <label className="f">Username<input id="username" name="username" autoComplete="username" autoCapitalize="none" autoCorrect="off" spellCheck={false} required /></label>
         <label className="f">Kata sandi<input id="password" name="password" type="password" autoComplete="current-password" required /></label>
         {error && <p className="error">{error}</p>}
         <button className="btn primary" disabled={busy}>{busy ? "Masuk…" : "Masuk"}</button>
