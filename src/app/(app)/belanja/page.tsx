@@ -11,16 +11,18 @@ export default async function Belanja() {
   const [sessions, items] = await Promise.all([listSessions(supabase), loadItems(supabase)]);
   if (!sessions.length) return <p className="empty">Daftar belanja muncul setelah ada hitungan stok pertama.</p>;
 
-  // Use the newest count that has numbers in it: this morning's count is still empty until the end of the shift.
+  // Use the newest count that has numbers in it. Today's count starts with last night's stock carried over,
+  // so deliveries entered this morning take items off the list before the end-of-shift count is done.
   let latest = sessions[0];
   let lines = await loadLines(supabase, latest.id);
-  let { needs, counted } = restockNeeds(items, lines);
+  let { needs, counted, estimated } = restockNeeds(items, lines);
   for (const s of sessions.slice(1, 8)) {
     if (counted) break;
     latest = s;
     lines = await loadLines(supabase, s.id);
-    ({ needs, counted } = restockNeeds(items, lines));
+    ({ needs, counted, estimated } = restockNeeds(items, lines));
   }
+  const delivered = [...lines.values()].filter((l) => String(l.masuk ?? "").trim() && !String(l.tersedia ?? "").trim()).length;
   const withMin = items.filter((i) => i.min_stock && i.min_stock > 0).length;
 
   const text = restockText(needs, latest.count_date);
@@ -29,13 +31,23 @@ export default async function Belanja() {
     <>
       <div className="bar">
         <div>
-          <p className="eyebrow">Berdasarkan hitungan {dateLabel(latest.count_date)}</p>
+          <p className="eyebrow">
+            {estimated
+              ? `Stok semalam + barang masuk ${dateLabel(latest.count_date)}`
+              : `Berdasarkan hitungan ${dateLabel(latest.count_date)}`}
+          </p>
           <h2 className="big">{needs.length ? `${needs.length} bahan perlu dibeli` : "Tidak ada yang perlu dibeli"}</h2>
         </div>
         <span className="spacer" />
         {needs.length > 0 && <CopyList text={text} />}
       </div>
 
+      {estimated > 0 && (
+        <p className="muted small">
+          Belum dihitung akhir shift, jadi stok dihitung dari hasil semalam ditambah barang masuk hari ini
+          {delivered ? ` (${delivered} bahan sudah ada kiriman)` : ""}. Daftar ini ikut berubah begitu barang masuk dicatat di Hitung.
+        </p>
+      )}
       {withMin === 0 && (
         <p className="note">
           Sekarang daftar ini hanya berisi bahan yang <b>habis</b>. Atur <b>stok minimum</b> tiap bahan di{" "}
