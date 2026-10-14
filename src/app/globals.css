@@ -221,3 +221,45 @@ main > .eyebrow:first-child, .wrap > nav + .eyebrow { margin-top: 14px; }
 .boxstate.ok { color: var(--accent); }
 .boxstate.saving { color: var(--muted); }
 .boxstate.error { color: var(--bad); }
+/* Checklist shift */
+.checklist .countbar .filters { margin-bottom: 0; }
+.ck-section { margin-top: 18px; }
+.ck-section h3 { font-size: .75rem; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin: 0 0 6px; }
+.ck-hint { margin: -2px 0 8px; }
+.ck-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 6px; }
+.ck-item { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; display: grid; gap: 4px; }
+.ck-item.done { border-color: var(--accent); box-shadow: inset 4px 0 0 var(--accent); }
+.ck-reminders { list-style: none; margin: 0; padding: 4px 12px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
+.ck-reminders li { display: grid; grid-template-columns: 6.5em minmax(0, 1fr); gap: 8px; padding-block: 7px; border-bottom: 1px solid var(--line); font-size: .92rem; }
+.ck-reminders li:last-child { border-bottom: 0; }
+.ck-reminders .ck-time { margin: 2px 0 0; white-space: normal; }
+.ck-row { display: grid; grid-template-columns: 28px minmax(0, 1fr); gap: 10px; align-items: start; cursor: pointer; font-size: .95rem; }
+.ck-row input { width: 24px; height: 24px; margin: 0; accent-color: var(--accent); }
+.ck-item.done .ck-row > span { color: var(--muted); }
+.ck-time { display: inline-block; font-family: var(--mono); font-size: .75rem; color: var(--muted); margin-right: 8px; white-space: nowrap; }
+.ck-by { font-size: .78rem; font-weight: 600; color: var(--accent); }
+.ck-field { display: flex; gap: 8px; align-items: center; margin-left: 38px; font-size: .85rem; font-weight: 600; color: var(--muted); }
+.ck-input, .ck-text { min-width: 0; width: 100%; font: inherit; font-size: .95rem; color: var(--ink); padding: 8px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); }
+.ck-field .ck-input { flex: 1; max-width: 220px; font-family: var(--mono); }
+.ck-item > .ck-input { margin-left: 38px; width: calc(100% - 38px); }
+.ck-text { resize: vertical; }
+.ck-extra { display: flex; align-items: center; gap: 16px; margin-left: 38px; min-height: 0; }
+.ck-extra:not(:has(> :not(.spacer))) { display: none; }
+.ck-extra .linkbtn { padding-block: 2px; }
+.ck-note { margin: 0 0 0 38px; }
+.ck-item .calc { margin-left: 38px; }
+.pre { white-space: pre-wrap; margin: 4px 0 0; }
+.ck-hours { list-style: none; padding: 0; margin: 0; display: grid; gap: 6px; }
+.ck-hours details { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
+.ck-hours details[open] { padding-bottom: 10px; }
+.ck-hour { display: flex; gap: 10px; align-items: center; padding: 10px 12px; cursor: pointer; list-style: none; }
+.ck-hour::-webkit-details-marker { display: none; }
+.ck-hour b { font-family: var(--mono); font-weight: 500; }
+.ck-hours .ck-list { padding-inline: 10px; }
+.ck-hours .ck-item { border-color: var(--line); }
+.ck-all { margin: 10px 10px 0; width: calc(100% - 20px); }
+@media (max-width: 640px) {
+  .ck-input, .ck-text { font-size: 16px; }
+  nav.tabs a { font-size: .78rem; }
+}
+.ck-hours .ck-by { margin: 0 0 0 38px; }

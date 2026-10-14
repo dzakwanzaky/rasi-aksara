@@ -13,7 +13,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   return (
     <div className="wrap">
       <header className="top">
-        <h1><small>Rasi Aksara</small>Stok Opname</h1>
+        <h1><small>Rasi Aksara</small>Operasional</h1>
         <form action={signOut} className="row">
           <span className="muted who">{accountLabel(session?.user.email)}</span>
           {admin && <Link href="/staff" className="btn small">Staff</Link>}
