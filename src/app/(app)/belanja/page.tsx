@@ -9,11 +9,18 @@ import { CopyList } from "./CopyList";
 export default async function Belanja() {
   const supabase = await createClient();
   const [sessions, items] = await Promise.all([listSessions(supabase), loadItems(supabase)]);
-  const latest = sessions[0];
-  if (!latest) return <p className="empty">Daftar belanja muncul setelah ada hitungan stok pertama.</p>;
+  if (!sessions.length) return <p className="empty">Daftar belanja muncul setelah ada hitungan stok pertama.</p>;
 
-  const lines = await loadLines(supabase, latest.id);
-  const { needs, counted } = restockNeeds(items, lines);
+  // Use the newest count that has numbers in it: this morning's count is still empty until the end of the shift.
+  let latest = sessions[0];
+  let lines = await loadLines(supabase, latest.id);
+  let { needs, counted } = restockNeeds(items, lines);
+  for (const s of sessions.slice(1, 8)) {
+    if (counted) break;
+    latest = s;
+    lines = await loadLines(supabase, s.id);
+    ({ needs, counted } = restockNeeds(items, lines));
+  }
   const withMin = items.filter((i) => i.min_stock && i.min_stock > 0).length;
 
   const text = restockText(needs, latest.count_date);

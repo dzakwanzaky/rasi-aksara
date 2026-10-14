@@ -2,6 +2,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { listSessions, loadItems, loadLines, todayJakarta } from "@/lib/data";
 import { dateLabel } from "@/lib/types";
+import { openCount, syncCarryOver } from "@/lib/session";
 import { startCount } from "../actions";
 import { CountFlow } from "./CountFlow";
 
@@ -10,7 +11,15 @@ export default async function Hitung({ searchParams }: { searchParams: Promise<{
   const date = (await searchParams).date ?? today;
   const supabase = await createClient();
   const sessions = await listSessions(supabase);
-  const session = sessions.find((s) => s.count_date === date);
+  let session = sessions.find((s) => s.count_date === date);
+  const { data: { session: auth } } = await supabase.auth.getSession();
+
+  // Today opens by itself once there is an earlier count, so the morning shift sees last night's stock
+  // straight away and can add what came in.
+  if (!session && date === today && sessions.some((s) => s.count_date < date)) {
+    const id = await openCount(supabase, date, auth?.user.id);
+    session = { id, count_date: date, note: "", created_at: new Date().toISOString() };
+  }
 
   if (!session) {
     const last = sessions[0];
@@ -35,6 +44,7 @@ export default async function Hitung({ searchParams }: { searchParams: Promise<{
     );
   }
 
+  const prevDate = await syncCarryOver(supabase, session.id, session.count_date, auth?.user.id);
   const [items, lines] = await Promise.all([loadItems(supabase), loadLines(supabase, session.id)]);
   return (
     <CountFlow
@@ -42,6 +52,7 @@ export default async function Hitung({ searchParams }: { searchParams: Promise<{
       dateText={dateLabel(session.count_date)}
       date={session.count_date}
       isToday={session.count_date === today}
+      prevDateText={prevDate ? dateLabel(prevDate) : null}
       items={items}
       initialLines={Object.fromEntries([...lines].map(([id, l]) => [id, { awal: l.awal, masuk: l.masuk, tersedia: l.tersedia }]))}
     />

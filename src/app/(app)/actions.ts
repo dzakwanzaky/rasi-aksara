@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { openCount } from "@/lib/session";
 import { CATEGORIES, type Category } from "@/lib/types";
 import { loadItems, loadLines, todayJakarta } from "@/lib/data";
 import { notify, notifyConfigured } from "@/lib/notify";
@@ -21,33 +22,7 @@ export async function startCount(form: FormData) {
   const { data: { session: auth } } = await supabase.auth.getSession();
   const countDate = String(form.get("count_date") || todayJakarta());
 
-  const { data: existing } = await supabase
-    .from("opname_sessions").select("id").eq("count_date", countDate).limit(1).maybeSingle();
-  if (existing) redirect(`/hitung?date=${countDate}`);
-
-  const { data: prev } = await supabase
-    .from("opname_sessions").select("id")
-    .lt("count_date", countDate)
-    .order("count_date", { ascending: false }).order("created_at", { ascending: false })
-    .limit(1).maybeSingle();
-
-  const { data: created, error } = await supabase
-    .from("opname_sessions")
-    .insert({ count_date: countDate, created_by: auth?.user.id })
-    .select("id").single();
-  // Someone else started this date's count a moment ago: open theirs.
-  if (error?.code === "23505") redirect(`/hitung?date=${countDate}`);
-  if (error) throw new Error("Gagal membuat hitungan: " + error.message);
-
-  if (prev) {
-    const { data: lines } = await supabase
-      .from("opname_lines").select("item_id, tersedia")
-      .eq("session_id", prev.id).not("tersedia", "is", null);
-    const carried = (lines ?? [])
-      .filter((l) => String(l.tersedia).trim() !== "")
-      .map((l) => ({ session_id: created.id, item_id: l.item_id, awal: l.tersedia, updated_by: auth?.user.id }));
-    if (carried.length) await supabase.from("opname_lines").insert(carried);
-  }
+  await openCount(supabase, countDate, auth?.user.id);
 
   revalidatePath("/hitung");
   redirect(`/hitung?date=${countDate}`);

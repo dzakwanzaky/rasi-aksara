@@ -9,7 +9,7 @@ import { finishCount } from "../actions";
 type Lines = Record<number, Partial<Line>>;
 
 export function CountFlow(props: {
-  sessionId: string; date: string; dateText: string; isToday: boolean; items: Item[]; initialLines: Lines;
+  sessionId: string; date: string; dateText: string; isToday: boolean; prevDateText: string | null; items: Item[]; initialLines: Lines;
 }) {
   const { sessionId, items } = props;
   const supabase = useMemo(() => createClient(), []);
@@ -120,8 +120,9 @@ export function CountFlow(props: {
       </div>
 
       <p className="help">
-        Tulis <b>sisa sekarang</b> untuk tiap bahan. Boleh pakai pecahan seperti <code>3 1/2</code> atau <code>3,5</code>.
-        Kalau habis, tulis <code>0</code>.
+        <b>Stok terakhir</b> = hasil hitung {props.prevDateText ?? "sebelumnya"}. Pagi: cek stoknya dan isi{" "}
+        <b>barang masuk</b> kalau ada kiriman. Akhir shift: tulis <b>sisa</b> tiap bahan
+        (boleh <code>3 1/2</code> atau <code>3,5</code>, kalau habis tulis <code>0</code>).
       </p>
 
       {visible.length === 0 && (
@@ -145,8 +146,9 @@ export function CountFlow(props: {
                 </div>
                 <span className="tag">{i.category}</span>
               </div>
-              <p className="muted small">
-                Kemarin: {l.awal ? (kemarin != null && !Number.isNaN(kemarin) ? `${formatQty(kemarin)} ${i.unit}` : l.awal) : "belum ada data"}
+              <p className="laststock">
+                Stok terakhir:{" "}
+                {l.awal ? <b>{kemarin != null && !Number.isNaN(kemarin) ? `${formatQty(kemarin)} ${i.unit}` : l.awal}</b> : <span className="muted">belum ada data</span>}
               </p>
               <label className="sisa">
                 <span>{i.unit ? `Sisa berapa ${i.unit}?` : "Sisa sekarang"}</span>
