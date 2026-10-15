@@ -3,13 +3,13 @@
 import { useRouter } from "next/navigation";
 
 /** Tap to open the phone's calendar and jump straight to a day (Zaky, 14 Okt 2026). */
-export function DatePick({ date, today }: { date: string; today: string }) {
+export function DatePick({ date, today, path = "/checklist" }: { date: string; today: string; path?: string }) {
   const router = useRouter();
   function go(d: string) {
     if (!d || d > today) return;
     const url = new URL(window.location.href);
     url.searchParams.set("date", d);
-    router.push(`/checklist?${url.searchParams}`);
+    router.push(`${path}?${url.searchParams}`);
   }
   return (
     <div className="ck-datepick">
