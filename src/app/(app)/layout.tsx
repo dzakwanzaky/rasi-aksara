@@ -3,13 +3,12 @@ import { Nav } from "./Nav";
 import Link from "next/link";
 import { signOut } from "./actions";
 import { accountLabel } from "@/lib/staff";
+import { isAdmin } from "@/lib/admin";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
   const { data: { session } } = await supabase.auth.getSession();
-  const { data: admin } = session
-    ? await supabase.from("app_admins").select("user_id").eq("user_id", session.user.id).maybeSingle()
-    : { data: null };
+  const admin = await isAdmin(supabase);
   return (
     <div className="wrap">
       <header className="top">

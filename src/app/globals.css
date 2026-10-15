@@ -145,8 +145,8 @@ details.group summary { cursor: pointer; padding-block: 6px; }
   .btn.small { min-height: 38px; padding-inline: 12px; }
   .chip { min-height: 36px; padding-inline: 13px; }
   .items .it { grid-template-columns: minmax(0, 1fr); gap: 8px; padding: 12px; }
-  .items .it > .row, .minform { justify-content: space-between; flex-wrap: nowrap; gap: 8px; }
-  .minform { flex: 1; }
+  .items .it > .row { flex-wrap: nowrap; gap: 8px; min-width: 0; }
+  .minform { flex: 1; min-width: 0; flex-wrap: nowrap; gap: 8px; }
   .minform input { flex: 1; width: auto; min-width: 0; padding-block: 8px; }
   .use-row { align-items: flex-start; }
 }

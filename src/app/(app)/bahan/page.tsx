@@ -3,10 +3,14 @@ import { createClient } from "@/lib/supabase/server";
 import { formatQty } from "@/lib/qty";
 import { CATEGORIES, sortItems, type Item } from "@/lib/types";
 import { archiveItem, saveItem, setMinStock } from "../actions";
+import { isAdmin } from "@/lib/admin";
 
 export default async function Bahan({ searchParams }: { searchParams: Promise<{ edit?: string }> }) {
-  const { edit } = await searchParams;
+  const { edit: editParam } = await searchParams;
   const supabase = await createClient();
+  // Only admins change items and minimum stock; staff see the list read-only and count in Hitung.
+  const admin = await isAdmin(supabase);
+  const edit = admin ? editParam : undefined;
   const { data } = await supabase.from("items").select("*").eq("active", true);
   const items = sortItems((data ?? []) as Item[]);
   const editing = edit && edit !== "new" ? items.find((i) => String(i.id) === edit) : undefined;
@@ -16,7 +20,7 @@ export default async function Bahan({ searchParams }: { searchParams: Promise<{ 
       <div className="bar">
         <h2>Daftar bahan <span className="muted">{items.length}</span></h2>
         <span className="spacer" />
-        {!edit && <Link className="btn primary" href="/bahan?edit=new">Tambah bahan</Link>}
+        {admin && !edit && <Link className="btn primary" href="/bahan?edit=new">Tambah bahan</Link>}
       </div>
 
       {edit && (
@@ -51,9 +55,17 @@ export default async function Bahan({ searchParams }: { searchParams: Promise<{ 
         </form>
       )}
 
-      <p className="help">
-        Isi <b>Min</b> (stok minimum) untuk tiap bahan. Kalau sisa di bawah angka ini, bahan masuk ke daftar Belanja.
-      </p>
+      {admin ? (
+        <p className="help">
+          <b>Min</b> = batas beli, bukan sisa stok. Kalau sisa di bawah angka ini, bahan masuk ke daftar Belanja.
+          Sisa stok dicatat di <Link href="/hitung">Hitung</Link>.
+        </p>
+      ) : (
+        <p className="autosave-note">
+          Mau mencatat sisa stok? Pakai tab <Link href="/hitung"><b>Hitung</b></Link>. Halaman ini hanya daftar bahan;
+          yang bisa mengubahnya hanya admin.
+        </p>
+      )}
 
       {!items.length && <p className="empty">Belum ada bahan. Tekan Tambah bahan untuk mulai.</p>}
       {CATEGORIES.map((c) => {
@@ -74,7 +86,7 @@ export default async function Bahan({ searchParams }: { searchParams: Promise<{ 
                       {i.min_stock ? ` · min ${formatQty(i.min_stock)}` : ""}
                     </small>
                   </div>
-                  <div className="row">
+                  {admin && <div className="row">
                     <form action={setMinStock} className="row minform">
                       <input type="hidden" name="id" value={i.id} />
                       <label className="small muted" htmlFor={`min-${i.id}`}>Min</label>
@@ -82,7 +94,7 @@ export default async function Bahan({ searchParams }: { searchParams: Promise<{ 
                       <button className="btn small">Simpan</button>
                     </form>
                     <Link className="btn small" href={`/bahan?edit=${i.id}`}>Ubah</Link>
-                  </div>
+                  </div>}
                 </div>
               ))}
             </div>

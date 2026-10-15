@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { isAdmin } from "@/lib/admin";
 import { openCount } from "@/lib/session";
 import { CATEGORIES, type Category } from "@/lib/types";
 import { loadItems, loadLines, todayJakarta } from "@/lib/data";
@@ -42,6 +43,7 @@ const numOrNull = (v: FormDataEntryValue | null) => {
 
 export async function saveItem(form: FormData) {
   const supabase = await createClient();
+  if (!(await isAdmin(supabase))) redirect("/bahan");
   const name = String(form.get("name") ?? "").trim();
   const category = String(form.get("category")) as Category;
   if (!name || !CATEGORIES.includes(category)) return;
@@ -69,6 +71,7 @@ export async function saveItem(form: FormData) {
 /** Hides an item from new counts; its history stays. */
 export async function archiveItem(form: FormData) {
   const supabase = await createClient();
+  if (!(await isAdmin(supabase))) redirect("/bahan");
   await supabase.from("items").update({ active: false }).eq("id", Number(form.get("id")));
   revalidatePath("/bahan");
   redirect("/bahan");
@@ -77,6 +80,7 @@ export async function archiveItem(form: FormData) {
 /** Quick edit of an item's minimum stock from the item list. */
 export async function setMinStock(form: FormData) {
   const supabase = await createClient();
+  if (!(await isAdmin(supabase))) return;
   await supabase.from("items").update({ min_stock: numOrNull(form.get("min_stock")) }).eq("id", Number(form.get("id")));
   revalidatePath("/bahan");
   revalidatePath("/belanja");
