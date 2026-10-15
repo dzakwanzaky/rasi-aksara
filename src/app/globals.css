@@ -272,3 +272,32 @@ main > .eyebrow:first-child, .wrap > nav + .eyebrow { margin-top: 14px; }
 .ck-datepick input { position: absolute; inset: 0; opacity: 0; width: 100%; height: 100%; cursor: pointer; font-size: 16px; }
 .ck-datepick input::-webkit-calendar-picker-indicator { position: absolute; inset: 0; width: 100%; height: 100%; cursor: pointer; }
 .daynav .ck-datepick .btn { font-size: .85rem; line-height: 1.2; padding: 6px 12px; }
+/* Laporan harian */
+@media (max-width: 640px) {
+  /* Seven tabs: let them scroll sideways instead of squeezing */
+  nav.tabs { overflow-x: auto; scrollbar-width: none; margin-inline: -16px; padding-inline: 8px; }
+  nav.tabs a { flex: 1 0 auto; padding-inline: 9px; }
+}
+.lp-links { margin: 4px 0 0; text-align: center; }
+.lp-fields { display: grid; gap: 6px; }
+.lp-field { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 190px); gap: 6px 10px; align-items: center; }
+.lp-label { display: grid; gap: 1px; }
+.lp-label b { font-size: .95rem; }
+.lp-label .muted { font-size: .78rem; }
+.lp-input { display: flex; align-items: center; gap: 6px; }
+.lp-input input { min-width: 0; width: 100%; font-family: var(--mono); font-size: 1.05rem; text-align: right; padding: 8px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--bg); color: var(--ink); }
+.lp-input input.bad { border-color: var(--bad); }
+.lp-note { grid-column: 1 / -1; }
+.lp-sum { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 2px 12px; }
+.lp-sum-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding-block: 10px; border-bottom: 1px solid var(--line); }
+.lp-sum-row:last-child { border-bottom: 0; }
+.lp-sum-row > span { display: grid; font-weight: 600; }
+.lp-sum-row small { font-weight: 400; font-size: .76rem; color: var(--muted); }
+.lp-sum-row b { font-family: var(--mono); font-size: 1.1rem; font-weight: 600; white-space: nowrap; }
+.lp-sum-row.plus b, .lp-plus { color: var(--accent); }
+.lp-sum-row.minus b, .lp-minus { color: var(--bad); }
+.lp-total { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 8px; margin-top: 12px; }
+.lp-total > div { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; display: grid; gap: 2px; }
+.lp-total b { font-family: var(--mono); font-size: 1.05rem; }
+.lp-diff { flex: none; }
+@media (max-width: 640px) { .lp-input input { font-size: 16px; } .lp-total { grid-template-columns: 1fr 1fr; } }
