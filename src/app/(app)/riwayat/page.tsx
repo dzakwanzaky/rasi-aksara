@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { listSessions, loadItems, loadLinesFor, todayJakarta } from "@/lib/data";
+import { listSessions, loadItems, loadLinesFor, countDayJakarta } from "@/lib/data";
 import { dateLabel, type LineRow } from "@/lib/types";
 import { usageSummary } from "@/lib/usage";
 
@@ -19,7 +19,7 @@ export default async function Riwayat({ searchParams }: { searchParams: Promise<
     if (!bySession.has(l.session_id)) bySession.set(l.session_id, new Map());
     bySession.get(l.session_id)!.set(l.item_id, l);
   }
-  const today = todayJakarta();
+  const today = countDayJakarta();
 
   return (
     <>

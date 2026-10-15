@@ -1,13 +1,13 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
-import { listSessions, loadItems, loadLines, todayJakarta } from "@/lib/data";
+import { listSessions, loadItems, loadLines, countDayJakarta } from "@/lib/data";
 import { dateLabel } from "@/lib/types";
 import { openCount, syncCarryOver } from "@/lib/session";
 import { startCount } from "../actions";
 import { CountFlow } from "./CountFlow";
 
 export default async function Hitung({ searchParams }: { searchParams: Promise<{ date?: string }> }) {
-  const today = todayJakarta();
+  const today = countDayJakarta();
   const date = (await searchParams).date ?? today;
   const supabase = await createClient();
   const sessions = await listSessions(supabase);

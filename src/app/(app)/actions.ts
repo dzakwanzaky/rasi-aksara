@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { isAdmin } from "@/lib/admin";
 import { openCount } from "@/lib/session";
 import { CATEGORIES, type Category } from "@/lib/types";
-import { loadItems, loadLines, todayJakarta } from "@/lib/data";
+import { countDayJakarta, loadItems, loadLines } from "@/lib/data";
 import { notify, notifyConfigured } from "@/lib/notify";
 import { restockNeeds, restockText } from "@/lib/restock";
 
@@ -21,7 +21,7 @@ export async function signOut() {
 export async function startCount(form: FormData) {
   const supabase = await createClient();
   const { data: { session: auth } } = await supabase.auth.getSession();
-  const countDate = String(form.get("count_date") || todayJakarta());
+  const countDate = String(form.get("count_date") || countDayJakarta());
 
   await openCount(supabase, countDate, auth?.user.id);
 

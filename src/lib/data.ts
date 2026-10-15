@@ -5,6 +5,13 @@ import { sortItems, type Item, type LineRow, type Session } from "./types";
 export const todayJakarta = () =>
   new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Jakarta" }).format(new Date());
 
+/** The night shift closes after midnight, so a stock count belongs to the previous day until this hour (Jakarta). */
+export const COUNT_DAY_STARTS_AT = 6;
+
+/** The date a stock count made now belongs to: before 06:00 it is still last night's count. */
+export const countDayJakarta = (now = new Date()) =>
+  new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Jakarta" }).format(new Date(now.getTime() - COUNT_DAY_STARTS_AT * 3600_000));
+
 export async function loadItems(supabase: SupabaseClient) {
   const { data } = await supabase.from("items").select("*").eq("active", true);
   return sortItems((data ?? []) as Item[]);
