@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { Camera } from "./Camera";
 import { createClient } from "@/lib/supabase/client";
 import {
   HOURS, SHEETS, hourlyKey, itemKey, itemNoteKey, noteKey, readAmount, rupiah, tickKeys,
@@ -10,11 +11,23 @@ import {
 
 type Entries = Record<string, Partial<Entry>>;
 
+export type Photo = { id: string; path: string; url: string | null; taken_by: string | null; taken_at: string; uploading?: boolean };
+type Photos = Record<string, Photo[]>;
+type PhotoApi = {
+  photos: Photos; view: (p: Photo) => void; readOnly: boolean; error: Record<string, string>;
+  /** Ticking opens the camera; the tick is saved once the photo is up. Unticking needs no photo. */
+  toggle: (key: string, title: string, checked: boolean) => void;
+  shoot: (key: string, title: string) => void;
+};
+const PhotoCtx = createContext<PhotoApi | null>(null);
+const BUCKET = "checklist-photos";
+
 const clock = (iso: string | null | undefined) =>
   iso ? new Date(iso).toLocaleTimeString("id-ID", { timeZone: "Asia/Jakarta", hour: "2-digit", minute: "2-digit" }) : "";
 
 export function ChecklistFlow(props: {
   date: string; initialSheet: SheetId; hourNow: number; me: string; initialEntries: Entries; readOnly: boolean;
+  initialPhotos: Photos;
   prevClosing: { dateText: string; text: string } | null;
 }) {
   const { date, hourNow, me, readOnly } = props;
@@ -92,6 +105,61 @@ export function ChecklistFlow(props: {
   }, [supabase, date]);
   useEffect(() => () => { clearTimeout(timer.current); void flush(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Photo proof is required for every tick (Zaky, 18 Okt 2026): ticking opens the live camera,
+  // the photo goes to the private bucket, gets recorded against the item, and only then is the item ticked.
+  const [photos, setPhotos] = useState<Photos>(props.initialPhotos);
+  const [photoError, setPhotoError] = useState<Record<string, string>>({});
+  const [viewing, setViewing] = useState<Photo | null>(null);
+  const [shooting, setShooting] = useState<{ key: string; title: string } | null>(null);
+  const putPhoto = (key: string, p: Photo, replaceId?: string) =>
+    setPhotos((prev) => {
+      const list = (prev[key] ?? []).filter((x) => x.id !== (replaceId ?? p.id) && x.path !== p.path);
+      return { ...prev, [key]: [...list, p] };
+    });
+  async function addPhoto(key: string, blob: Blob) {
+    const tempId = `tmp-${Date.now()}`;
+    const localUrl = URL.createObjectURL(blob);
+    putPhoto(key, { id: tempId, path: "", url: localUrl, taken_by: me, taken_at: new Date().toISOString(), uploading: true });
+    setPhotoError((prev) => { const n = { ...prev }; delete n[key]; return n; });
+    try {
+      const path = `${date}/${crypto.randomUUID()}.jpg`;
+      const up = await supabase.storage.from(BUCKET).upload(path, blob, { contentType: "image/jpeg" });
+      if (up.error) throw up.error;
+      const { data, error } = await supabase.from("checklist_photos")
+        .insert({ check_date: date, key, path, taken_by: me }).select("id, taken_at").single();
+      if (error) throw error;
+      putPhoto(key, { id: data.id, path, url: localUrl, taken_by: me, taken_at: data.taken_at }, tempId);
+      if (!entries[key]?.done) tick([key], true);
+    } catch (e) {
+      console.error("Photo upload failed", e);
+      setPhotos((prev) => ({ ...prev, [key]: (prev[key] ?? []).filter((x) => x.id !== tempId) }));
+      setPhotoError((prev) => ({ ...prev, [key]: "Foto gagal dikirim. Cek sinyal lalu coba lagi." }));
+    }
+  }
+  useEffect(() => {
+    const channel = supabase
+      .channel(`checklist-photos-${date}`)
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "checklist_photos", filter: `check_date=eq.${date}` },
+        async (msg) => {
+          const row = msg.new as { id: string; key: string; path: string; taken_by: string | null; taken_at: string };
+          const { data } = await supabase.storage.from(BUCKET).createSignedUrl(row.path, 60 * 60 * 12);
+          setPhotos((prev) => {
+            if ((prev[row.key] ?? []).some((x) => x.path === row.path)) return prev;
+            return { ...prev, [row.key]: [...(prev[row.key] ?? []), { ...row, url: data?.signedUrl ?? null }] };
+          });
+        },
+      )
+      .subscribe();
+    return () => { void supabase.removeChannel(channel); };
+  }, [supabase, date]);
+  const photoApi: PhotoApi = {
+    photos, view: setViewing, readOnly, error: photoError,
+    shoot: (key, title) => setShooting({ key, title }),
+    toggle: (key, title, checked) => (checked ? setShooting({ key, title }) : tick([key], false)),
+  };
+
   function pick(id: SheetId) {
     setSheetId(id);
     const url = new URL(window.location.href);
@@ -109,6 +177,7 @@ export function ChecklistFlow(props: {
   const field = { entries, type, typing };
 
   return (
+    <PhotoCtx.Provider value={photoApi}>
     <div className="checklist">
       <div className="countbar">
         <div className="filters">
@@ -139,7 +208,7 @@ export function ChecklistFlow(props: {
         <p className="note">Ini riwayat hari yang sudah lewat, jadi hanya bisa dilihat dan tidak bisa diubah.</p>
       ) : (
         <p className="autosave-note">
-          <b>✓ Tersimpan otomatis.</b> Tinggal centang. Nama kamu dan jamnya tercatat sendiri sebagai paraf.
+          <b>📷 Centang = foto bukti.</b> Saat dicentang, kamera langsung terbuka. Foto, nama kamu, dan jamnya tersimpan otomatis sebagai paraf.
         </p>
       )}
 
@@ -191,7 +260,55 @@ export function ChecklistFlow(props: {
         <TextBox k={noteKey(sheet.id)} multiline placeholder={readOnly ? "Tidak ada catatan." : "Tulis catatan untuk shift berikutnya…"} {...field} />
       </section>
       </fieldset>
+      {shooting && (
+        <Camera
+          title={shooting.title}
+          onClose={() => setShooting(null)}
+          onShot={(blob) => { const k = shooting.key; setShooting(null); void addPhoto(k, blob); }}
+        />
+      )}
+      {viewing && (
+        <div className="ck-viewer" role="dialog" aria-label="Foto" onClick={() => setViewing(null)}>
+          {viewing.url && <img src={viewing.url} alt="Foto bukti" />}
+          <p>📷 {viewing.taken_by || "?"} · {clock(viewing.taken_at)} <span className="muted">(ketuk untuk tutup)</span></p>
+        </div>
+      )}
     </div>
+    </PhotoCtx.Provider>
+  );
+}
+
+/** Camera button and thumbnails of one item's photo proof. */
+function PhotoButton({ k, title, done }: { k: string; title: string; done: boolean }) {
+  const api = useContext(PhotoCtx)!;
+  if (api.readOnly || !done) return null;
+  return <button type="button" className="linkbtn" onClick={() => api.shoot(k, title)}>📷 Foto lagi</button>;
+}
+
+function Tick({ k, title, done }: { k: string; title: string; done: boolean }) {
+  const api = useContext(PhotoCtx)!;
+  const uploading = (api.photos[k] ?? []).some((p) => p.uploading);
+  return <input type="checkbox" checked={done || uploading} onChange={(ev) => api.toggle(k, title, ev.target.checked)} />;
+}
+
+function PhotoStrip({ k }: { k: string }) {
+  const api = useContext(PhotoCtx)!;
+  const list = api.photos[k] ?? [];
+  if (!list.length && !api.error[k]) return null;
+  return (
+    <>
+      {list.length > 0 && (
+        <div className="ck-photos">
+          {list.map((p) => (
+            <button key={p.id} type="button" className="ck-thumb" disabled={p.uploading || !p.url} onClick={() => api.view(p)}>
+              {p.url ? <img src={p.url} alt={`Foto oleh ${p.taken_by ?? "?"}`} /> : <span>Foto</span>}
+              <small>{p.uploading ? "Mengirim…" : `${p.taken_by ?? "?"} · ${clock(p.taken_at)}`}</small>
+            </button>
+          ))}
+        </div>
+      )}
+      {api.error[k] && <p className="error ck-photo-err">{api.error[k]}</p>}
+    </>
   );
 }
 
@@ -223,7 +340,7 @@ function Item({ sheet, item, tick, field, readOnly, children }: {
   return (
     <li className={`ck-item${e.done ? " done" : ""}`}>
       <label className="ck-row">
-        <input type="checkbox" checked={!!e.done} onChange={(ev) => tick([k], ev.target.checked)} />
+        <Tick k={k} title={item.text} done={!!e.done} />
         <span>
           {item.time && <span className="ck-time">{item.time}</span>}
           {item.text}
@@ -242,8 +359,10 @@ function Item({ sheet, item, tick, field, readOnly, children }: {
         {e.done && <span className="ck-by">✓ {e.done_by || "?"} · {clock(e.done_at)}</span>}
         <span className="spacer" />
         {item.link && <Link className="linkbtn" href={item.link.href}>{item.link.label} →</Link>}
+        <PhotoButton k={k} title={item.text} done={!!e.done} />
         {!showNote && !readOnly && <button className="linkbtn" onClick={() => setShowNote(true)}>+ Catatan</button>}
       </div>
+      <PhotoStrip k={k} />
       {showNote && <TextBox k={itemNoteKey(k)} placeholder="Catatan (kalau ada)" {...field} />}
     </li>
   );
@@ -282,19 +401,19 @@ function Hourly({ section, entries, hourNow, tick, readOnly }: {
                   return (
                     <li key={k} className={`ck-item${e.done ? " done" : ""}`}>
                       <label className="ck-row">
-                        <input type="checkbox" checked={!!e.done} onChange={(ev) => tick([k], ev.target.checked)} />
+                        <Tick k={k} title={`${String(h).padStart(2, "0")}.00 · ${i.text}`} done={!!e.done} />
                         <span>{i.text}</span>
                       </label>
-                      {e.done && <p className="ck-by">✓ {e.done_by || "?"} · {clock(e.done_at)}</p>}
+                      <div className="ck-extra">
+                        {e.done && <span className="ck-by">✓ {e.done_by || "?"} · {clock(e.done_at)}</span>}
+                        <span className="spacer" />
+                        <PhotoButton k={k} title={`${String(h).padStart(2, "0")}.00 · ${i.text}`} done={!!e.done} />
+                      </div>
+                      <PhotoStrip k={k} />
                     </li>
                   );
                 })}
               </ul>
-              {done.length < keys.length && !readOnly && (
-                <button className="btn primary ck-all" onClick={() => tick(keys.filter((k) => !entries[k]?.done), true)}>
-                  Semua sudah dicek
-                </button>
-              )}
             </details>
           </li>
         );

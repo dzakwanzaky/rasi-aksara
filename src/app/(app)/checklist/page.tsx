@@ -4,7 +4,7 @@ import { todayJakarta } from "@/lib/data";
 import { dateLabel } from "@/lib/types";
 import { accountLabel } from "@/lib/staff";
 import { SHEETS, noteKey, sheetForTime, type Entry, type SheetId } from "@/lib/checklist";
-import { ChecklistFlow } from "./ChecklistFlow";
+import { ChecklistFlow, type Photo } from "./ChecklistFlow";
 import { DatePick } from "./DatePick";
 
 const shiftDay = (date: string, days: number) => {
@@ -58,6 +58,18 @@ export default async function Checklist({ searchParams }: { searchParams: Promis
   );
   const next = shiftDay(date, 1);
 
+  // Photo proof for this day, with short-lived links to the private files.
+  const { data: photoRows } = await supabase.from("checklist_photos")
+    .select("id, key, path, taken_by, taken_at").eq("check_date", date).order("taken_at");
+  const signed = photoRows?.length
+    ? (await supabase.storage.from("checklist-photos").createSignedUrls(photoRows.map((p) => p.path as string), 60 * 60 * 12)).data
+    : [];
+  const urlOf = new Map((signed ?? []).map((u) => [u.path, u.signedUrl]));
+  const photos: Record<string, Photo[]> = {};
+  for (const p of photoRows ?? []) {
+    (photos[p.key as string] ??= []).push({ ...(p as Omit<Photo, "url">), url: urlOf.get(p.path as string) ?? null });
+  }
+
   return (
     <>
       <div className="daynav">
@@ -79,6 +91,7 @@ export default async function Checklist({ searchParams }: { searchParams: Promis
         hourNow={isToday ? now.hour : 24}
         me={accountLabel(session?.user.email)}
         initialEntries={entries}
+        initialPhotos={photos}
         readOnly={!isToday}
         prevClosing={prev ? { dateText: dateLabel(prev.check_date as string), text: prev.value as string } : null}
       />

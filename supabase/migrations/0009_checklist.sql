@@ -1,5 +1,6 @@
 -- Shift checklist (Zaky, 14 Okt 2026): opening, operasional + hourly check, ganti shift, closing.
 -- Safe to run again: running it a second time only refreshes the rules below.
+-- After 0011_checklist_photos.sql exists, run 0011 again after this file: 0011 adds the photo rule to the tick rules.
 -- The checklist itself lives in the app (src/lib/checklist.ts). This table keeps what staff ticked
 -- and typed, one row per date per item, e.g. key 'opening:pintu' or 'operasional:jam10:parkir'.
 
