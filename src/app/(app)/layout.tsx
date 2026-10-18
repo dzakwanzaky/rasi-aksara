@@ -19,7 +19,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           <button className="btn small">Keluar akun</button>
         </form>
       </header>
-      <Nav />
+      <Nav admin={admin} />
       {children}
     </div>
   );
