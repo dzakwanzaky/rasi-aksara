@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { isAdmin } from "@/lib/admin";
 import { todayJakarta } from "@/lib/data";
 import { dateLabel } from "@/lib/types";
-import { COUNT_FROM, LATE_AFTER_MIN, PERIODS, hhmm, pct, periodRange, summarize, type Period, type Row, type StaffStat } from "@/lib/performa";
+import { COUNT_FROM, LATE_AFTER_MIN, OWN_SHARE, PERIODS, hhmm, pct, periodRange, summarize, type Period, type Row, type StaffStat } from "@/lib/performa";
 import { PhotoGrid, type ShownPhoto } from "./PhotoGrid";
 
 export const dynamic = "force-dynamic";
@@ -113,7 +113,10 @@ function Overview({ sum, href }: { sum: ReturnType<typeof summarize>; href: (o: 
       )}
 
       <h3 className="perf-h">Target per shift</h3>
-      <p className="muted small">Lulus kalau semua item checklist shift itu dicentang, termasuk setiap ronde hourly.</p>
+      <p className="muted small">
+        Shift lulus kalau semua item checklist-nya dicentang, termasuk setiap ronde hourly. Tiap orang juga punya target pribadi:
+        minimal {Math.round(OWN_SHARE * 100)}% dari bagi rata poin shift.
+      </p>
       <ul className="perf-rounds perf-shifts">
         {[...sum.shifts].reverse().map((x) => (
           <li key={`${x.date}-${x.morning}`}>
@@ -124,9 +127,16 @@ function Overview({ sum, href }: { sum: ReturnType<typeof summarize>; href: (o: 
                 : x.passed === false ? <span className="pill bad">✗ Belum lulus</span> : <span className="pill warn">Berjalan</span>}
               <span className="pill">{x.done}/{x.total}</span>
             </span>
+            <span className="perf-round-pills">
+              {x.own.map((o) => (
+                <span key={o.name} className={`pill${o.passed === false ? " bad" : o.passed ? "" : " warn"}`}>
+                  {o.name} {o.points}/{o.target}{o.passed ? " ✓" : o.passed === false ? " ✗" : ""}
+                </span>
+              ))}
+            </span>
             <span className="muted small">
-              {x.people.length ? x.people.join(", ") : "Belum ada yang mencentang"}
-              {x.passed === false && ` · ${[
+              {!x.people.length && "Belum ada yang mencentang"}
+              {x.passed === false && `${[
                 x.open.length && `${x.open.length} item belum dicentang`,
                 x.missedRounds.length && `ronde ${x.missedRounds.map(hour2).join(", ")} terlewat`,
               ].filter(Boolean).join(", ") || "ada ronde hourly yang belum lengkap"}`}
@@ -183,6 +193,7 @@ function Overview({ sum, href }: { sum: ReturnType<typeof summarize>; href: (o: 
           <li><b>Porsi shift</b>: checklist dipakai bersama satu shift, jadi dibandingkan berapa persen poin shift itu yang dikerjakan orang ini dengan bagi rata (2 orang = 50%). Kuning kalau di bawah 60% dari bagi rata. Shift dibagi jam 14.00; item ganti shift tidak dihitung. Staff yang tidak mencentang apa pun tidak muncul sama sekali.</li>
           <li><b>Terlambat</b>: dicentang lebih dari {LATE_AFTER_MIN} menit setelah jam di checklist. Hourly: setelah jamnya lewat (ronde 10.00 paling lambat 11.00). Item tanpa jam: setelah shift-nya selesai.</li>
           <li><b>Terlewat</b>: ronde hourly yang tidak dicentang sama sekali setelah jamnya lewat. <b>Kurang</b>: hanya sebagian yang dicentang.</li>
+          <li><b>Target pribadi</b>: poin semua item shift dibagi rata ke orang yang masuk shift itu, lalu tiap orang minimal {Math.round(OWN_SHARE * 100)}% dari bagiannya. Contoh: pagi 106 poin, 2 orang, target 42 poin per orang. Siapa yang masuk shift ditebak dari jam centangan; staff yang tidak mencentang sama sekali tidak terhitung.</li>
           <li><b>Target shift</b>: shift lulus kalau semua item checklist-nya dicentang. Pagi = opening + hourly 09–13. Sore = ganti shift + hourly 14–21 + closing. Hourly check tugas bar. Satu shift lulus atau gagal bersama; staff yang ikut shift itu ditebak dari jam centangannya (centang sebelum 12.00 = pagi, centang dari 15.00 = sore).</li>
           <li>Hari tanpa centangan sama sekali dianggap tutup dan tidak dihitung.</li>
         </ul>
@@ -199,7 +210,7 @@ function StaffNumbers({ s }: { s: StaffStat }) {
       <span className={s.late ? "warn" : ""}><b>{s.late}</b> terlambat</span>
       <span><b>{s.rounds}</b> ronde hourly</span>
       <span className={s.shiftsPassed < s.shiftsJudged ? "bad" : ""}><b>{s.shiftsPassed}/{s.shiftsJudged}</b> shift lulus target</span>
-      <span><b>{s.days.length}</b> hari kerja</span>
+      <span className={s.ownPassed < s.shiftsJudged ? "bad" : ""}><b>{s.ownPassed}/{s.shiftsJudged}</b> target pribadi</span>
       <Share s={s} />
     </div>
   );

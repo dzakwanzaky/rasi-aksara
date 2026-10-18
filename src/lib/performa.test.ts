@@ -99,4 +99,25 @@ describe("summarize", () => {
       { from: "2026-10-18", to: "2026-10-18", today: "2026-10-18", hourNow: 12 });
     expect(today.shifts[0].passed).toBeNull();
   });
+
+  it("gives each person a target of 80% of an even split of the shift's points", () => {
+    const opening = SHEETS.find((x) => x.id === "opening")!;
+    const keys = tickKeys(opening);
+    // Rifky does the whole opening (61 points) and the rounds; Budi ticks two things.
+    const rows = [
+      ...keys.slice(2).map((k) => tick(day, k, "rifky", "07:20")),
+      ...keys.slice(0, 2).map((k) => tick(day, k, "budi", "07:10")),
+      ...HOURS.filter((h) => h < 14).flatMap((h) => round(day, h, "rifky", `${String(h).padStart(2, "0")}:10`)),
+    ];
+    const s = summarize(rows, opts);
+    const shift = s.shifts[0];
+    expect(shift.possible).toBe(106);
+    expect(shift.passed).toBe(true);
+    // 106 / 2 people = 53, 80% of that = 42.
+    expect(shift.own).toEqual([
+      { name: "rifky", points: 104, target: 42, passed: true },
+      { name: "budi", points: 2, target: 42, passed: false },
+    ]);
+    expect(s.staff.find((x) => x.name === "budi")).toMatchObject({ shiftsPassed: 1, ownPassed: 0 });
+  });
 });
