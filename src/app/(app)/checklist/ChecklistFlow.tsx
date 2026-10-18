@@ -133,7 +133,14 @@ export function ChecklistFlow(props: {
     } catch (e) {
       console.error("Photo upload failed", e);
       setPhotos((prev) => ({ ...prev, [key]: (prev[key] ?? []).filter((x) => x.id !== tempId) }));
-      setPhotoError((prev) => ({ ...prev, [key]: "Foto gagal dikirim. Cek sinyal lalu coba lagi." }));
+      const msg = String((e as { message?: string })?.message ?? "");
+      const notSetUp = /bucket not found|checklist_photos|schema cache/i.test(msg);
+      setPhotoError((prev) => ({
+        ...prev,
+        [key]: notSetUp
+          ? "Fitur foto belum aktif di database. Minta admin menjalankan 0011_checklist_photos.sql di Supabase."
+          : "Foto gagal dikirim. Cek sinyal lalu coba lagi.",
+      }));
     }
   }
   useEffect(() => {
