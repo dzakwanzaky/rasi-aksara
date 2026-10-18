@@ -104,7 +104,12 @@ export type StaffStat = {
   /** Finished shifts they worked, and how many of those reached the shift target. */
   shiftsJudged: number;
   shiftsPassed: number;
+  /** Finished shifts where their own points reached their personal target. */
+  ownPassed: number;
 };
+
+/** Each person must earn at least this share of an even split of the shift's points (Zaky, 18 Okt 2026). */
+export const OWN_SHARE = 0.8;
 
 /**
  * The daily target is per shift, not per person (Zaky, 18 Okt 2026): everything on the shift's checklist
@@ -117,6 +122,9 @@ export type ShiftCheck = {
   /** null while the shift is still running. */
   passed: boolean | null;
   people: string[];
+  /** Points the whole shift can earn, and each person's points against their target. */
+  possible: number;
+  own: { name: string; points: number; target: number; passed: boolean | null }[];
 };
 
 const sheetKeys = (id: SheetId) => tickKeys(SHEETS.find((s) => s.id === id)!);
@@ -155,7 +163,7 @@ export function summarize(rows: Row[], opts: { from: string; to: string; today: 
   const staff = new Map<string, StaffStat>();
   const stat = (name: string) => {
     let s = staff.get(name);
-    if (!s) staff.set(name, (s = { name, ticks: 0, points: 0, late: 0, rounds: 0, missed: 0, partial: 0, days: [], list: [], share: { own: 0, total: 0, fair: 0, peers: [] }, shiftsJudged: 0, shiftsPassed: 0 }));
+    if (!s) staff.set(name, (s = { name, ticks: 0, points: 0, late: 0, rounds: 0, missed: 0, partial: 0, days: [], list: [], share: { own: 0, total: 0, fair: 0, peers: [] }, shiftsJudged: 0, shiftsPassed: 0, ownPassed: 0 }));
     return s;
   };
   const byDate = new Map<string, Map<string, Row>>();
@@ -252,8 +260,22 @@ export function summarize(rows: Row[], opts: { from: string; to: string; today: 
       const missedRounds = rounds.filter((h) => !roundKeys([h]).some((k) => day?.get(k)?.done));
       const open = keys.filter((k) => !day?.get(k)?.done && itemInfo(k)?.hour == null).map((k) => itemInfo(k)!.label);
       const passed = over ? doneKeys.length === keys.length : null;
-      sum.shifts.push({ date, morning, done: doneKeys.length, total: keys.length, missedRounds, open, passed, people });
-      if (passed != null) for (const name of people) { stat(name).shiftsJudged++; if (passed) stat(name).shiftsPassed++; }
+      // Personal target: at least OWN_SHARE of an even split of everything the shift can earn.
+      const possible = keys.reduce((n, k) => n + itemInfo(k)!.points, 0);
+      const target = people.length ? Math.round((possible / people.length) * OWN_SHARE) : 0;
+      const own = people.map((name) => {
+        const points = doneKeys.filter((k) => (day!.get(k)!.done_by || "?") === name).reduce((n, k) => n + itemInfo(k)!.points, 0);
+        return { name, points, target, passed: over ? points >= target : null };
+      });
+      sum.shifts.push({ date, morning, done: doneKeys.length, total: keys.length, missedRounds, open, passed, people, possible, own });
+      if (passed != null) {
+        for (const o of own) {
+          const st = stat(o.name);
+          st.shiftsJudged++;
+          if (passed) st.shiftsPassed++;
+          if (o.passed) st.ownPassed++;
+        }
+      }
     }
   }
   for (const s of staff.values()) s.list.sort((a, b) => a.date.localeCompare(b.date) || a.at - b.at);
