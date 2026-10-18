@@ -56,7 +56,7 @@ export function minutesInto(date: string, iso: string): number {
 
 export const hhmm = (min: number) => `${String(Math.floor(min / 60)).padStart(2, "0")}.${String(min % 60).padStart(2, "0")}`;
 
-type ItemInfo = { label: string; due: number; hour?: number };
+type ItemInfo = { label: string; due: number; hour?: number; points: number };
 const INFO = new Map<string, ItemInfo>();
 for (const sheet of SHEETS) {
   for (const s of sheet.sections) {
@@ -64,13 +64,13 @@ for (const sheet of SHEETS) {
     for (const i of s.items) {
       if (s.kind === "hourly") {
         for (const h of HOURS) {
-          INFO.set(hourlyKey(h, i.key), { label: `Hourly ${String(h).padStart(2, "0")}.00 · ${i.text}`, due: (h + 1) * 60, hour: h });
+          INFO.set(hourlyKey(h, i.key), { label: `Hourly ${String(h).padStart(2, "0")}.00 · ${i.text}`, due: (h + 1) * 60, hour: h, points: i.points ?? 1 });
         }
         continue;
       }
       const m = /^(\d{2})\.(\d{2})$/.exec(i.time ?? "");
       const due = m ? Number(m[1]) * 60 + Number(m[2]) + LATE_AFTER_MIN : SHEET_END[sheet.id];
-      INFO.set(itemKey(sheet.id, i.key), { label: `${sheet.title} · ${i.text}`, due });
+      INFO.set(itemKey(sheet.id, i.key), { label: `${sheet.title} · ${i.text}`, due, points: i.points ?? 1 });
     }
   }
 }
@@ -81,11 +81,13 @@ const DAILY_KEYS = [...INFO.entries()].filter(([, v]) => v.hour == null).map(([k
 
 export type Row = { check_date: string; key: string; done: boolean; done_by: string | null; done_at: string | null };
 
-export type Tick = { date: string; key: string; label: string; at: number; due: number; late: boolean };
+export type Tick = { date: string; key: string; label: string; at: number; due: number; late: boolean; points: number };
 
 export type StaffStat = {
   name: string;
   ticks: number;
+  /** Ticks weighted by effort (CheckItem.points). */
+  points: number;
   late: number;
   /** Hourly rounds they ticked at least one item of. */
   rounds: number;
@@ -94,7 +96,7 @@ export type StaffStat = {
   partial: number;
   days: string[];
   list: Tick[];
-  /** Their ticks, all ticks, and a fair split of all ticks, over the shifts they worked (see `summarize`). */
+  /** Their points, all points, and a fair split of all points, over the shifts they worked (see `summarize`). */
   share: { own: number; total: number; fair: number; peers: string[] };
 };
 
@@ -123,7 +125,7 @@ export function summarize(rows: Row[], opts: { from: string; to: string; today: 
   const staff = new Map<string, StaffStat>();
   const stat = (name: string) => {
     let s = staff.get(name);
-    if (!s) staff.set(name, (s = { name, ticks: 0, late: 0, rounds: 0, missed: 0, partial: 0, days: [], list: [], share: { own: 0, total: 0, fair: 0, peers: [] } }));
+    if (!s) staff.set(name, (s = { name, ticks: 0, points: 0, late: 0, rounds: 0, missed: 0, partial: 0, days: [], list: [], share: { own: 0, total: 0, fair: 0, peers: [] } }));
     return s;
   };
   const byDate = new Map<string, Map<string, Row>>();
@@ -149,8 +151,9 @@ export function summarize(rows: Row[], opts: { from: string; to: string; today: 
       const s = stat(name);
       const late = at > info.due;
       s.ticks++;
+      s.points += info.points;
       if (late) s.late++;
-      s.list.push({ date, key: r.key, label: info.label, at, due: info.due, late });
+      s.list.push({ date, key: r.key, label: info.label, at, due: info.due, late, points: info.points });
       if (s.days[s.days.length - 1] !== date) s.days.push(date);
       sum.ticks++;
       if (late) sum.late++;
@@ -165,8 +168,8 @@ export function summarize(rows: Row[], opts: { from: string; to: string; today: 
       ).map(([name]) => name);
 
     // Everyone on a shift shares one checklist, so someone can leave it to the others (Zaky, 18 Okt 2026).
-    // Split the day at 14.00 into the morning and evening shift and compare each person's ticks with
-    // an even split among the people on that shift. Handover items are done by both shifts, so they're left out.
+    // Split the day at 14.00 into the morning and evening shift and compare each person's points (ticks
+    // weighted by effort) with an even split among the people on that shift. Handover items are done by both shifts, so they're left out.
     for (const morning of [true, false]) {
       // On a shift = the shift guess above; someone fitting neither belongs where most of their ticks are.
       // A stray late tick across 14.00 doesn't make someone a member of the other shift.
@@ -178,11 +181,13 @@ export function summarize(rows: Row[], opts: { from: string; to: string; today: 
       }).map(([name]) => name);
       const inShift = done.filter((r) => !r.key.startsWith("handover:") && half(r) === morning && members.includes(r.done_by || "?"));
       if (!inShift.length || !members.length) continue;
+      const pts = (list: Row[]) => list.reduce((n, r) => n + itemInfo(r.key)!.points, 0);
+      const total = pts(inShift);
       for (const name of members) {
         const sh = stat(name).share;
-        sh.own += inShift.filter((r) => (r.done_by || "?") === name).length;
-        sh.total += inShift.length;
-        sh.fair += inShift.length / members.length;
+        sh.own += pts(inShift.filter((r) => (r.done_by || "?") === name));
+        sh.total += total;
+        sh.fair += total / members.length;
         for (const peer of members) if (peer !== name && !sh.peers.includes(peer)) sh.peers.push(peer);
       }
     }

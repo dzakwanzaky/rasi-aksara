@@ -76,7 +76,9 @@ describe("summarize", () => {
     ];
     const s = summarize(rows, opts);
     const budi = s.staff.find((x) => x.name === "budi")!;
-    expect(budi.share).toEqual({ own: 2, total: 8, fair: 4, peers: ["rifky"] });
+    // Points, not ticks: Rifky's six included four heavy cleaning jobs (3 points each).
+    expect(budi.share).toEqual({ own: 4, total: 18, fair: 9, peers: ["rifky"] });
+    expect(budi.points).toBe(4);
     expect(s.staff.find((x) => x.name === "dina")!.share).toEqual({ own: 1, total: 1, fair: 1, peers: [] });
   });
 });
