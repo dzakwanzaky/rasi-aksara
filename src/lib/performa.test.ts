@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { HOURS, hourlyKey } from "./checklist";
+import { HOURS, SHEETS, hourlyKey, tickKeys } from "./checklist";
 import { itemInfo, minutesInto, periodRange, summarize, type Row } from "./performa";
 
 const at = (date: string, time: string) => new Date(`${date}T${time}:00+07:00`).toISOString();
@@ -80,5 +80,23 @@ describe("summarize", () => {
     expect(budi.share).toEqual({ own: 4, total: 18, fair: 9, peers: ["rifky"] });
     expect(budi.points).toBe(4);
     expect(s.staff.find((x) => x.name === "dina")!.share).toEqual({ own: 1, total: 1, fair: 1, peers: [] });
+  });
+
+  it("passes a shift only when its whole checklist and every hourly round is ticked", () => {
+    const opening = SHEETS.find((x) => x.id === "opening")!;
+    const all = tickKeys(opening).map((k) => tick(day, k, "rifky", "07:20"));
+    const rounds = HOURS.filter((h) => h < 14).flatMap((h) => round(day, h, "rifky", `${String(h).padStart(2, "0")}:10`));
+    const full = summarize([...all, ...rounds], opts);
+    expect(full.shifts).toEqual([expect.objectContaining({ morning: true, passed: true, missedRounds: [], open: [], people: ["rifky"] })]);
+    expect(full.staff[0]).toMatchObject({ shiftsJudged: 1, shiftsPassed: 1 });
+
+    const short = summarize([...all.slice(1), ...rounds.slice(6)], opts);
+    expect(short.shifts[0]).toMatchObject({ passed: false, missedRounds: [9], open: ["Opening · Buka pintu dan ventilasi ruangan"] });
+    expect(short.staff[0]).toMatchObject({ shiftsJudged: 1, shiftsPassed: 0 });
+
+    // Today's morning shift isn't judged until it's over.
+    const today = summarize([...all, ...rounds].map((r) => ({ ...r, check_date: "2026-10-18", done_at: r.done_at!.replace("2026-10-17", "2026-10-18") })),
+      { from: "2026-10-18", to: "2026-10-18", today: "2026-10-18", hourNow: 12 });
+    expect(today.shifts[0].passed).toBeNull();
   });
 });

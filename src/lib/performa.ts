@@ -1,7 +1,7 @@
 // Checklist performance per staff for the owner's dashboard (/performa, Zaky 18 Okt 2026).
 // Everything is worked out from checklist_entries: who ticked (done_by) and when (done_at).
 
-import { HOURS, SHEETS, hourlyKey, itemKey, type SheetId } from "./checklist";
+import { HOURS, SHEETS, hourlyKey, itemKey, tickKeys, type SheetId } from "./checklist";
 
 export type Period = "hari" | "minggu" | "bulan";
 export const PERIODS: { id: Period; label: string }[] = [
@@ -101,6 +101,32 @@ export type StaffStat = {
   list: Tick[];
   /** Their points, all points, and a fair split of all points, over the shifts they worked (see `summarize`). */
   share: { own: number; total: number; fair: number; peers: string[] };
+  /** Finished shifts they worked, and how many of those reached the shift target. */
+  shiftsJudged: number;
+  shiftsPassed: number;
+};
+
+/**
+ * The daily target is per shift, not per person (Zaky, 18 Okt 2026): everything on the shift's checklist
+ * ticked, every hourly item included. Morning = opening + rounds 09–13; evening = handover + rounds 14–21 + closing.
+ */
+export type ShiftCheck = {
+  date: string; morning: boolean; done: number; total: number;
+  /** Hourly rounds with nothing ticked, and items not ticked by anyone. */
+  missedRounds: number[]; open: string[];
+  /** null while the shift is still running. */
+  passed: boolean | null;
+  people: string[];
+};
+
+const sheetKeys = (id: SheetId) => tickKeys(SHEETS.find((s) => s.id === id)!);
+const roundKeys = (hours: number[]) => {
+  const items = SHEETS.find((s) => s.id === "operasional")!.sections.find((s) => s.kind === "hourly")!.items;
+  return hours.flatMap((h) => items.map((i) => hourlyKey(h, i.key)));
+};
+const SHIFT_KEYS = {
+  morning: [...sheetKeys("opening"), ...roundKeys(HOURS.filter((h) => h < 14))],
+  evening: [...sheetKeys("handover"), ...roundKeys(HOURS.filter((h) => h >= 14)), ...sheetKeys("closing")],
 };
 
 export type Round = { date: string; hour: number; done: number; total: number; onDuty: string[] };
@@ -116,6 +142,7 @@ export type Summary = {
   skipped: number;
   activeDays: string[];
   staff: StaffStat[];
+  shifts: ShiftCheck[];
 };
 
 /**
@@ -128,7 +155,7 @@ export function summarize(rows: Row[], opts: { from: string; to: string; today: 
   const staff = new Map<string, StaffStat>();
   const stat = (name: string) => {
     let s = staff.get(name);
-    if (!s) staff.set(name, (s = { name, ticks: 0, points: 0, late: 0, rounds: 0, missed: 0, partial: 0, days: [], list: [], share: { own: 0, total: 0, fair: 0, peers: [] } }));
+    if (!s) staff.set(name, (s = { name, ticks: 0, points: 0, late: 0, rounds: 0, missed: 0, partial: 0, days: [], list: [], share: { own: 0, total: 0, fair: 0, peers: [] }, shiftsJudged: 0, shiftsPassed: 0 }));
     return s;
   };
   const byDate = new Map<string, Map<string, Row>>();
@@ -138,7 +165,7 @@ export function summarize(rows: Row[], opts: { from: string; to: string; today: 
     byDate.get(r.check_date)!.set(r.key, r);
   }
 
-  const sum: Summary = { ticks: 0, late: 0, roundsJudged: 0, roundsFull: 0, partial: [], missed: [], skipped: 0, activeDays: [], staff: [] };
+  const sum: Summary = { ticks: 0, late: 0, roundsJudged: 0, roundsFull: 0, partial: [], missed: [], skipped: 0, activeDays: [], staff: [], shifts: [] };
   for (const date of datesBetween(opts.from, opts.to)) {
     const day = byDate.get(date);
     const done = [...(day?.values() ?? [])].filter((r) => r.done && r.done_at && itemInfo(r.key));
@@ -173,6 +200,7 @@ export function summarize(rows: Row[], opts: { from: string; to: string; today: 
     // Everyone on a shift shares one checklist, so someone can leave it to the others (Zaky, 18 Okt 2026).
     // Split the day at 14.00 into the morning and evening shift and compare each person's points (ticks
     // weighted by effort) with an even split among the people on that shift. Handover items are done by both shifts, so they're left out.
+    const crew = new Map<boolean, string[]>();
     for (const morning of [true, false]) {
       // On a shift = the shift guess above; someone fitting neither belongs where most of their ticks are.
       // A stray late tick across 14.00 doesn't make someone a member of the other shift.
@@ -182,6 +210,7 @@ export function summarize(rows: Row[], opts: { from: string; to: string; today: 
         const mine = done.filter((r) => (r.done_by || "?") === name);
         return (mine.filter(half).length * 2 >= mine.length) === morning;
       }).map(([name]) => name);
+      crew.set(morning, members);
       const inShift = done.filter((r) => !r.key.startsWith("handover:") && half(r) === morning && members.includes(r.done_by || "?"));
       if (!inShift.length || !members.length) continue;
       const pts = (list: Row[]) => list.reduce((n, r) => n + itemInfo(r.key)!.points, 0);
@@ -211,6 +240,21 @@ export function summarize(rows: Row[], opts: { from: string; to: string; today: 
     }
 
     if (date < opts.today) sum.skipped += DAILY_KEYS.filter((k) => !day?.get(k)?.done).length;
+
+    // Shift targets.
+    for (const morning of [true, false]) {
+      const keys = SHIFT_KEYS[morning ? "morning" : "evening"];
+      const people = crew.get(morning) ?? [];
+      const doneKeys = keys.filter((k) => day?.get(k)?.done);
+      if (!people.length && !doneKeys.length) continue;
+      const over = date < opts.today || opts.hourNow >= (morning ? 15 : 23);
+      const rounds = HOURS.filter((h) => (morning ? h < 14 : h >= 14) && (!isToday || h < opts.hourNow));
+      const missedRounds = rounds.filter((h) => !roundKeys([h]).some((k) => day?.get(k)?.done));
+      const open = keys.filter((k) => !day?.get(k)?.done && itemInfo(k)?.hour == null).map((k) => itemInfo(k)!.label);
+      const passed = over ? doneKeys.length === keys.length : null;
+      sum.shifts.push({ date, morning, done: doneKeys.length, total: keys.length, missedRounds, open, passed, people });
+      if (passed != null) for (const name of people) { stat(name).shiftsJudged++; if (passed) stat(name).shiftsPassed++; }
+    }
   }
   for (const s of staff.values()) s.list.sort((a, b) => a.date.localeCompare(b.date) || a.at - b.at);
   sum.staff = [...staff.values()].sort((a, b) => b.ticks - a.ticks || a.name.localeCompare(b.name));
