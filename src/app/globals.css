@@ -321,3 +321,37 @@ main > .eyebrow:first-child, .wrap > nav + .eyebrow { margin-top: 14px; }
 .ck-shutter { width: 72px; height: 72px; border-radius: 999px; border: 5px solid #fff; background: #fff; box-shadow: inset 0 0 0 3px #0d1210; cursor: pointer; }
 .ck-shutter:disabled { opacity: .4; }
 .ck-camera .btn { color: var(--ink); }
+/* Performa checklist (owner dashboard) */
+.perf-h { font-size: .75rem; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin: 22px 0 8px; }
+.perf-list, .perf-days, .perf-rounds, .perf-ticks { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
+.perf-list { grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
+.perf-card { display: grid; gap: 8px; background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; text-decoration: none; color: inherit; }
+.perf-card:active { background: var(--accent-soft); }
+.perf-name { font-family: var(--display); font-size: 1.2rem; margin: 0 0 8px; }
+.card-head .perf-name { margin: 0; }
+.perf-nums { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.perf-nums span { background: var(--bg); border-radius: 8px; padding: 6px 8px; font-size: .74rem; color: var(--muted); line-height: 1.25; }
+.perf-nums b { display: block; font-family: var(--display); font-size: 1.15rem; color: var(--ink); }
+.perf-nums .warn { background: var(--warn-soft); color: var(--warn); }
+.perf-nums .bad { background: var(--bad-soft); color: var(--bad); }
+.perf-nums .warn b { color: var(--warn); }
+.perf-nums .bad b { color: var(--bad); }
+.perf-rounds li { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 8px 12px; }
+.perf-rounds a { font-weight: 600; min-width: 100px; }
+.perf-days .daycard[aria-current="true"] { border-color: var(--accent); box-shadow: inset 4px 0 0 var(--accent); }
+.perf-day-h { margin: 0 0 2px; }
+.perf-ticks { gap: 0; margin-top: 8px; }
+.perf-ticks li { padding: 10px 0; border-bottom: 1px solid var(--line); }
+.perf-ticks li:last-child { border-bottom: 0; }
+.perf-tick { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+.perf-tick-l { flex: 1 1 180px; min-width: 0; }
+.perf-photos { margin: 8px 0 0; }
+.perf-nophoto { margin: 4px 0 0; }
+.perf-how { margin-block: 22px; font-size: .88rem; color: var(--muted); }
+.perf-how summary { cursor: pointer; font-weight: 600; }
+.perf-how ul { padding-left: 18px; }
+.perf-rounds li { display: grid; grid-template-columns: 64px 1fr; row-gap: 4px; }
+.perf-rounds li > .muted { grid-column: 2; }
+.perf-round-pills { display: flex; gap: 4px; flex-wrap: wrap; }
+.perf-nums .perf-share { grid-column: 1 / -1; font-size: .8rem; }
+.perf-nums .perf-share b { display: inline; font-size: 1rem; }
