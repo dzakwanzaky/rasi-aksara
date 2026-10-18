@@ -353,3 +353,5 @@ main > .eyebrow:first-child, .wrap > nav + .eyebrow { margin-top: 14px; }
 .perf-rounds li { display: grid; grid-template-columns: 64px 1fr; row-gap: 4px; }
 .perf-rounds li > .muted { grid-column: 2; }
 .perf-round-pills { display: flex; gap: 4px; flex-wrap: wrap; }
+.perf-nums .perf-share { grid-column: 1 / -1; font-size: .8rem; }
+.perf-nums .perf-share b { display: inline; font-size: 1rem; }

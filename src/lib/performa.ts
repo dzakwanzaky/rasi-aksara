@@ -94,6 +94,8 @@ export type StaffStat = {
   partial: number;
   days: string[];
   list: Tick[];
+  /** Their ticks, all ticks, and a fair split of all ticks, over the shifts they worked (see `summarize`). */
+  share: { own: number; total: number; fair: number; peers: string[] };
 };
 
 export type Round = { date: string; hour: number; done: number; total: number; onDuty: string[] };
@@ -121,7 +123,7 @@ export function summarize(rows: Row[], opts: { from: string; to: string; today: 
   const staff = new Map<string, StaffStat>();
   const stat = (name: string) => {
     let s = staff.get(name);
-    if (!s) staff.set(name, (s = { name, ticks: 0, late: 0, rounds: 0, missed: 0, partial: 0, days: [], list: [] }));
+    if (!s) staff.set(name, (s = { name, ticks: 0, late: 0, rounds: 0, missed: 0, partial: 0, days: [], list: [], share: { own: 0, total: 0, fair: 0, peers: [] } }));
     return s;
   };
   const byDate = new Map<string, Map<string, Row>>();
@@ -161,6 +163,29 @@ export function summarize(rows: Row[], opts: { from: string; to: string; today: 
         || (first < 12 * 60 && MORNING_ROUNDS.includes(hour))
         || (last >= 15 * 60 && EVENING_ROUNDS.includes(hour)),
       ).map(([name]) => name);
+
+    // Everyone on a shift shares one checklist, so someone can leave it to the others (Zaky, 18 Okt 2026).
+    // Split the day at 14.00 into the morning and evening shift and compare each person's ticks with
+    // an even split among the people on that shift. Handover items are done by both shifts, so they're left out.
+    for (const morning of [true, false]) {
+      // On a shift = the shift guess above; someone fitting neither belongs where most of their ticks are.
+      // A stray late tick across 14.00 doesn't make someone a member of the other shift.
+      const half = (r: Row) => minutesInto(date, r.done_at!) < 14 * 60;
+      const members = [...span.entries()].filter(([name, { first, last }]) => {
+        if (first < 12 * 60 || last >= 15 * 60) return morning ? first < 12 * 60 : last >= 15 * 60;
+        const mine = done.filter((r) => (r.done_by || "?") === name);
+        return (mine.filter(half).length * 2 >= mine.length) === morning;
+      }).map(([name]) => name);
+      const inShift = done.filter((r) => !r.key.startsWith("handover:") && half(r) === morning && members.includes(r.done_by || "?"));
+      if (!inShift.length || !members.length) continue;
+      for (const name of members) {
+        const sh = stat(name).share;
+        sh.own += inShift.filter((r) => (r.done_by || "?") === name).length;
+        sh.total += inShift.length;
+        sh.fair += inShift.length / members.length;
+        for (const peer of members) if (peer !== name && !sh.peers.includes(peer)) sh.peers.push(peer);
+      }
+    }
 
     // Hourly rounds.
     const isToday = date === opts.today;

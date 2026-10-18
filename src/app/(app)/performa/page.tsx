@@ -144,6 +144,7 @@ function Overview({ sum, href }: { sum: ReturnType<typeof summarize>; href: (o: 
       <details className="perf-how">
         <summary>Cara menghitung</summary>
         <ul>
+          <li><b>Porsi shift</b>: checklist dipakai bersama satu shift, jadi dibandingkan berapa persen centangan shift itu yang dikerjakan orang ini dengan bagi rata (2 orang = 50%). Kuning kalau di bawah 60% dari bagi rata. Shift dibagi jam 14.00; item ganti shift tidak dihitung. Staff yang tidak mencentang apa pun tidak muncul sama sekali.</li>
           <li><b>Terlambat</b>: dicentang lebih dari {LATE_AFTER_MIN} menit setelah jam di checklist. Hourly: setelah jamnya lewat (ronde 10.00 paling lambat 11.00). Item tanpa jam: setelah shift-nya selesai.</li>
           <li><b>Terlewat</b>: ronde hourly yang tidak dicentang sama sekali setelah jamnya lewat. <b>Kurang</b>: hanya sebagian yang dicentang.</li>
           <li>Ronde terlewat dihitung ke staff yang <b>bertugas</b>. Jam tugas ditebak dari centangan: centang pertama sebelum 12.00 berarti shift pagi (ronde 09–14), ada centang dari 15.00 berarti shift sore (ronde 14–21).</li>
@@ -163,7 +164,21 @@ function StaffNumbers({ s }: { s: StaffStat }) {
       <span><b>{s.rounds}</b> ronde hourly</span>
       <span className={s.missed ? "bad" : ""}><b>{s.missed}</b> terlewat</span>
       <span className={s.partial ? "warn" : ""}><b>{s.partial}</b> kurang</span>
+      <Share s={s} />
     </div>
+  );
+}
+
+/** How much of the shared checklist this person did compared with an even split among the people on their shift. */
+function Share({ s }: { s: StaffStat }) {
+  const { own, total, fair, peers } = s.share;
+  if (!peers.length || !total) return null;
+  const low = own < fair * 0.6;
+  return (
+    <span className={`perf-share${low ? " warn" : ""}`}>
+      <b>{pct(own, total)}%</b> centangan shift dikerjakan dia · bagi rata {pct(fair, total)}% (bareng {peers.join(", ")})
+      {low && ". Lebih banyak dikerjakan rekannya."}
+    </span>
   );
 }
 

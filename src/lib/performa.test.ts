@@ -67,4 +67,16 @@ describe("summarize", () => {
     expect(s.missed.map((r) => r.hour)).toEqual([9, 10, 11]);
     expect(s.skipped).toBe(0);
   });
+
+  it("shows who leaves the shared checklist to their shift mates", () => {
+    const rows = [
+      ...["pintu", "tanaman", "pel-indoor", "pel-teras", "mushola", "kamar-mandi"].map((i) => tick(day, `opening:${i}`, "rifky", "07:10")),
+      ...["rak-buku", "meja-kursi"].map((i) => tick(day, `opening:${i}`, "budi", "07:20")),
+      tick(day, "closing:lampu", "dina", "22:20"),
+    ];
+    const s = summarize(rows, opts);
+    const budi = s.staff.find((x) => x.name === "budi")!;
+    expect(budi.share).toEqual({ own: 2, total: 8, fair: 4, peers: ["rifky"] });
+    expect(s.staff.find((x) => x.name === "dina")!.share).toEqual({ own: 1, total: 1, fair: 1, peers: [] });
+  });
 });
