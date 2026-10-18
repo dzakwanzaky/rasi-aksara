@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { isAdmin } from "@/lib/admin";
 import { todayJakarta } from "@/lib/data";
 import { dateLabel } from "@/lib/types";
-import { LATE_AFTER_MIN, PERIODS, hhmm, pct, periodRange, summarize, type Period, type Row, type StaffStat } from "@/lib/performa";
+import { COUNT_FROM, LATE_AFTER_MIN, PERIODS, hhmm, pct, periodRange, summarize, type Period, type Row, type StaffStat } from "@/lib/performa";
 import { PhotoGrid, type ShownPhoto } from "./PhotoGrid";
 
 export const dynamic = "force-dynamic";
@@ -39,6 +39,7 @@ export default async function Performa({ searchParams }: { searchParams: Promise
   const period: Period = PERIODS.some((x) => x.id === q.p) ? (q.p as Period) : "minggu";
   const anchor = /^\d{4}-\d{2}-\d{2}$/.test(q.d ?? "") && q.d! <= today ? q.d! : today;
   const range = periodRange(period, anchor);
+  const from = range.from < COUNT_FROM ? COUNT_FROM : range.from;
   const href = (o: Params) => {
     const s = new URLSearchParams();
     const v = { p: period, d: anchor, staf: q.staf, tgl: q.tgl, ...o };
@@ -46,18 +47,27 @@ export default async function Performa({ searchParams }: { searchParams: Promise
     return `/performa?${s}`;
   };
 
+  if (range.to < COUNT_FROM) {
+    return (
+      <>
+        <p className="eyebrow">Performa checklist staff</p>
+        <p className="empty">Penilaian dimulai {dateLabel(COUNT_FROM)}. Data sebelum itu tidak dihitung.</p>
+      </>
+    );
+  }
+
   // Every tick in the period. Supabase hands back at most 1000 rows per request, so page through.
   const rows: Row[] = [];
   for (let page = 0; ; page++) {
     const { data, error } = await supabase.from("checklist_entries")
       .select("check_date, key, done, done_by, done_at")
-      .gte("check_date", range.from).lte("check_date", range.to).eq("done", true)
+      .gte("check_date", from).lte("check_date", range.to).eq("done", true)
       .order("check_date").order("key").range(page * 1000, page * 1000 + 999);
     if (error) return <p className="empty">Data checklist belum bisa dibaca: {error.message}</p>;
     rows.push(...((data ?? []) as Row[]));
     if (!data || data.length < 1000) break;
   }
-  const sum = summarize(rows, { from: range.from, to: range.to, today, hourNow: anchor <= today ? hourNowJakarta() : 0 });
+  const sum = summarize(rows, { from, to: range.to, today, hourNow: anchor <= today ? hourNowJakarta() : 0 });
   const person = q.staf ? sum.staff.find((s) => s.name === q.staf) : undefined;
 
   return (
@@ -69,13 +79,16 @@ export default async function Performa({ searchParams }: { searchParams: Promise
         ))}
       </div>
       <div className="daynav">
-        <Link className="btn small" href={href({ d: range.prev, tgl: undefined })} aria-label="Sebelumnya">‹</Link>
+        {range.from > COUNT_FROM
+          ? <Link className="btn small" href={href({ d: range.prev, tgl: undefined })} aria-label="Sebelumnya">‹</Link>
+          : <span />}
         <h2 className="big">{periodLabel(period, range.from, range.to)}</h2>
         {range.next <= today
           ? <Link className="btn small" href={href({ d: range.next, tgl: undefined })} aria-label="Berikutnya">›</Link>
           : <span />}
       </div>
 
+      {from > range.from && <p className="muted small">Dihitung mulai {dateLabel(COUNT_FROM)}.</p>}
       {q.staf
         ? <StaffDetail stat={person} name={q.staf} day={q.tgl} href={href} />
         : <Overview sum={sum} href={href} />}

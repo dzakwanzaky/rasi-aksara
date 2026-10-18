@@ -10,6 +10,9 @@ export const PERIODS: { id: Period; label: string }[] = [
   { id: "bulan", label: "Bulan" },
 ];
 
+/** Scoring starts on this day: the rules (points, deadlines) were announced to staff for 19 Okt 2026 (Zaky). */
+export const COUNT_FROM = "2026-10-19";
+
 /** A tick counts as late this many minutes after the time printed on the checklist. */
 export const LATE_AFTER_MIN = 30;
 /** When a sheet's untimed items are due: the end of that shift's window. */
