@@ -17,7 +17,7 @@ export function Nav({ admin }: { admin: boolean }) {
   const path = usePathname();
   return (
     <nav className="tabs">
-      {(admin ? [...TABS, { href: "/performa", label: "Performa" }] : TABS).map((t) => (
+      {(admin ? [...TABS, { href: "/penjualan", label: "Penjualan" }, { href: "/performa", label: "Performa" }] : TABS).map((t) => (
         <Link key={t.href} href={t.href} aria-current={path.startsWith(t.href) ? "page" : undefined}>
           {t.label}
         </Link>
