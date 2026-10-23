@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { isAdmin } from "@/lib/admin";
 import { accountLabel } from "@/lib/staff";
 import { parseMajoo, readXlsxRows, salesLines, type Menu } from "@/lib/sales";
+import { summarize } from "@/lib/omzet";
 
 async function adminClient() {
   const supabase = await createClient();
@@ -13,11 +14,13 @@ async function adminClient() {
   return supabase;
 }
 
-const fail = (msg: string): never => redirect(`/penjualan?error=${encodeURIComponent(msg)}`);
+/** Where an upload comes back to: the Omzet tab or the Penjualan tab, whichever had the form. */
+const home = (form: FormData) => (form.get("from") === "omzet" ? "/omzet" : "/penjualan");
 
 /** Saves a Majoo "Detail Penjualan" export. Each day in the file replaces what was uploaded for that day before. */
 export async function uploadSales(form: FormData) {
   const supabase = await adminClient();
+  const fail = (msg: string): never => redirect(`${home(form)}?error=${encodeURIComponent(msg)}`);
   const file = form.get("file");
   if (!(file instanceof File) || !file.size) fail("Pilih file Excel dari Majoo dulu.");
   let trx;
@@ -40,29 +43,37 @@ export async function uploadSales(form: FormData) {
   const days = [...new Set(trx!.map((t) => t.date))].sort();
   for (const day of days) {
     const ofDay = trx!.filter((t) => t.date === day);
+    const rows = ofDay.map((t) => ({ sale_date: day, trx_no: t.no, shift: t.shift, method: t.method, order_type: t.orderType, products: t.products, total: t.total }));
+    const sum = summarize(rows);
     const { error } = await supabase.from("sales_days").upsert({
       sale_date: day,
       file_name: (file as File).name,
       trx_count: ofDay.length,
-      total: ofDay.reduce((s, t) => s + t.total, 0),
+      total: sum.total,
+      ...sum.byMethod,
       uploaded_by_name: accountLabel(session?.user.email),
       uploaded_at: new Date().toISOString(),
     });
-    if (error) fail(`Gagal menyimpan: ${error.message}`);
+    if (error) fail(`Gagal menyimpan: ${error.message}. Sudah jalankan 0012 dan 0013 di Supabase?`);
     await supabase.from("sales_lines").delete().eq("sale_date", day);
     const lines = salesLines(ofDay, price).map((l) => ({ sale_date: day, menu: l.menu, shift: l.shift, qty: l.qty, guessed: l.guessed }));
     const { error: e2 } = await supabase.from("sales_lines").insert(lines);
     if (e2) fail(`Gagal menyimpan: ${e2.message}`);
+    await supabase.from("sales_trx").delete().eq("sale_date", day);
+    const { error: e3 } = await supabase.from("sales_trx").insert(rows);
+    if (e3) fail(`Gagal menyimpan transaksi: ${e3.message}. Sudah jalankan 0013_omzet.sql di Supabase?`);
   }
   revalidatePath("/penjualan");
-  redirect(days.length === 1 ? `/penjualan/${days[0]}` : "/penjualan");
+  revalidatePath("/omzet");
+  redirect(days.length === 1 ? `${home(form)}/${days[0]}` : home(form));
 }
 
 export async function deleteSalesDay(form: FormData) {
   const supabase = await adminClient();
   await supabase.from("sales_days").delete().eq("sale_date", String(form.get("date")));
   revalidatePath("/penjualan");
-  redirect("/penjualan");
+  revalidatePath("/omzet");
+  redirect(home(form));
 }
 
 const back = (menuId: FormDataEntryValue | null) => redirect(`/penjualan/resep${menuId ? `?menu=${menuId}#m${menuId}` : ""}`);

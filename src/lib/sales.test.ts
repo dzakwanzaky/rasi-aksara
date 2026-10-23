@@ -8,7 +8,8 @@ const PRICE: Record<string, number> = {
   "Ayam Geprek": 20000, "Mango Squash": 18000, "Strawberry Squash": 17000,
 };
 const price = (m: string) => PRICE[m];
-const trx = (products: string[], total: number, shift: "1" | "2" = "1"): Trx => ({ no: "x", date: "2026-10-19", shift, products, total });
+const trx = (products: string[], total: number, shift: "1" | "2" = "1"): Trx =>
+  ({ no: "x", date: "2026-10-19", shift, products, total, method: "Cash", orderType: "Free Table" });
 
 // Rows shaped like Majoo's "Detail Penjualan" sheet: a summary block, then the header on row 13.
 const ROWS = [
@@ -26,7 +27,9 @@ describe("Majoo export", () => {
   it("reads the transactions under the header", () => {
     const t = parseMajoo(ROWS);
     expect(t).toHaveLength(3);
-    expect(t[0]).toEqual({ no: "CS/01/261019/0014", date: "2026-10-19", shift: "1", products: ["Rasi Kartika", "Rasi Nara"], total: 36000 });
+    expect(t[0]).toEqual({
+      no: "CS/01/261019/0014", date: "2026-10-19", shift: "1", products: ["Rasi Kartika", "Rasi Nara"], total: 36000, method: "Cash", orderType: "Free Table",
+    });
     expect(t[2].shift).toBe("2");
   });
   it("puts sales before 06:00 on the night before, like the stock count", () => {

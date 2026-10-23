@@ -8,7 +8,8 @@ import { parseQty, type QtyItem } from "./qty";
 
 export type Shift = "1" | "2" | "";
 
-export type Trx = { no: string; date: string; shift: Shift; products: string[]; total: number };
+/** `method` is Majoo's "Metode Pembayaran" as written, e.g. "Cash" or "Bank Transfer - Qris". */
+export type Trx = { no: string; date: string; shift: Shift; products: string[]; total: number; method: string; orderType: string };
 
 export type SaleLine = { menu: string; shift: Shift; qty: number; guessed: number };
 
@@ -60,7 +61,9 @@ export function parseMajoo(rows: string[][]): Trx[] {
   const h = rows.findIndex((r) => r.some((c) => norm(c) === "produk") && r.some((c) => norm(c) === "no transaksi"));
   if (h < 0) throw new Error("Kolom No Transaksi / Produk tidak ditemukan. Pakai export Detail Penjualan dari Majoo.");
   const col = (name: string) => rows[h].findIndex((c) => norm(c).startsWith(name));
-  const [cNo, cTime, cProd, cTotal, cShift] = [col("no transaksi"), col("waktu order"), col("produk"), col("total penjualan"), col("order")];
+  const [cNo, cTime, cProd, cTotal, cShift, cMethod, cType] = [
+    col("no transaksi"), col("waktu order"), col("produk"), col("total penjualan"), col("order"), col("metode pembayaran"), col("jenis order"),
+  ];
   const out: Trx[] = [];
   for (const r of rows.slice(h + 1)) {
     const date = saleDay(r[cTime] ?? "");
@@ -72,6 +75,8 @@ export function parseMajoo(rows: string[][]): Trx[] {
       shift: shift === "1" || shift === "2" ? shift : "",
       products: (r[cProd] ?? "").split(",").map((p) => p.trim()).filter(Boolean),
       total: Number(r[cTotal]) || 0,
+      method: (r[cMethod] ?? "").trim(),
+      orderType: (r[cType] ?? "").trim(),
     });
   }
   return out;
