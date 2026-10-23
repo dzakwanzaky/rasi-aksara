@@ -45,6 +45,9 @@ export default async function Omzet({ searchParams }: { searchParams: Promise<{ 
     <>
       <p className="eyebrow">Omzet harian dari Majoo</p>
       <h2 className="big">Omzet</h2>
+      <p className="row" style={{ marginTop: 8 }}>
+        <Link className="btn" href="/omzet/rekonsiliasi">Rekonsiliasi tunai &amp; QRIS ›</Link>
+      </p>
 
       <form action={uploadSales} className="panel">
         <input type="hidden" name="from" value="omzet" />
