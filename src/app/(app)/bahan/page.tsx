@@ -57,7 +57,7 @@ export default async function Bahan({ searchParams }: { searchParams: Promise<{ 
 
       {admin ? (
         <p className="help">
-          <b>Min</b> = batas beli, bukan sisa stok. Kalau sisa di bawah angka ini, bahan masuk ke daftar Belanja.
+          <b>Min</b> = batas beli, bukan sisa stok. Kalau sisa sama dengan atau di bawah angka ini, bahan masuk ke daftar Belanja.
           Sisa stok dicatat di <Link href="/hitung">Hitung</Link>.
         </p>
       ) : (
