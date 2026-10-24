@@ -165,10 +165,17 @@ export function ReportForm(props: {
               <span>Hasil<small>Tunai aktual − modal</small></span>
               <b>{out == null ? "–" : rupiah(out)}</b>
             </div>
-            {lain != null && lain !== 0 && (
+            {/* Omset should equal tunai + TF, plus any other payment (ojol, voucher). Less than that means a typo. */}
+            {lain != null && lain > 0 && (
               <div className="lp-sum-row">
-                <span>Omset selain tunai & TF<small>Omset − tunai sistem − TF sistem</small></span>
+                <span>Pembayaran lain<small>Omset yang bukan tunai atau TF (misal ojol)</small></span>
                 <b>{rupiah(lain)}</b>
+              </div>
+            )}
+            {lain != null && lain < 0 && (
+              <div className="lp-sum-row minus">
+                <span>Angka tidak cocok<small>Tunai sistem + TF sistem lebih besar dari omset. Cek lagi angka dari Majoo.</small></span>
+                <b>{rupiah(-lain)}</b>
               </div>
             )}
           </div>
