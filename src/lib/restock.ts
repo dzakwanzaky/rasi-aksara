@@ -25,7 +25,7 @@ export function restockNeeds(items: Item[], lines: Map<number, LineRow>) {
     counted++;
     if (now.estimated) estimated++;
     if (now.qty <= 0) needs.push({ item, sisa: 0, reason: "habis", estimated: now.estimated });
-    else if (item.min_stock && now.qty < item.min_stock) needs.push({ item, sisa: now.qty, reason: "menipis", estimated: now.estimated });
+    else if (item.min_stock && now.qty <= item.min_stock) needs.push({ item, sisa: now.qty, reason: "menipis", estimated: now.estimated });
   }
   return { needs, counted, estimated };
 }

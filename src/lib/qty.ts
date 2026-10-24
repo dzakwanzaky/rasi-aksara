@@ -70,8 +70,8 @@ export function calcLine(line: Partial<Line> | undefined, item: QtyItem) {
     flags.push({ level: "bad", label: item.pack_size ? "cek format" : "isi ukuran kemasan" });
   if (keluar != null && keluar < -1e-9) flags.push({ level: "bad", label: "lebih dari awal+masuk" });
   if (tersedia === 0) flags.push({ level: "warn", label: "habis" });
-  else if (readable(tersedia) && item.min_stock && item.min_stock > 0 && tersedia < item.min_stock)
-    flags.push({ level: "warn", label: "di bawah minimum" });
+  else if (readable(tersedia) && item.min_stock && item.min_stock > 0 && tersedia <= item.min_stock)
+    flags.push({ level: "warn", label: tersedia < item.min_stock ? "di bawah minimum" : "pas di minimum" });
 
   return { awal, masuk, tersedia, keluar, flags };
 }

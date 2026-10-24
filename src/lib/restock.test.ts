@@ -20,6 +20,10 @@ describe("restockNeeds", () => {
     const r = restockNeeds(items, new Map([[1, line(1, "2", "10", "3")]]));
     expect(r.needs).toMatchObject([{ item: { id: 1 }, sisa: 3, reason: "menipis", estimated: false }]);
   });
+  it("lists an item whose count equals its minimum", () => {
+    const r = restockNeeds([item(1, 2000)], new Map([[1, line(1, null, null, "2000")]]));
+    expect(r.needs).toMatchObject([{ item: { id: 1 }, sisa: 2000, reason: "menipis" }]);
+  });
   it("skips items with nothing known", () => {
     expect(restockNeeds(items, new Map([[2, line(2, null, "3", null)]])).counted).toBe(0);
   });

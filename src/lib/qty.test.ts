@@ -46,6 +46,8 @@ describe("calcLine", () => {
 
   it("flags items below minimum and empty items", () => {
     expect(calcLine({ tersedia: "1" }, item("botol", { min_stock: 2 })).flags[0].label).toBe("di bawah minimum");
+    expect(calcLine({ tersedia: "2" }, item("botol", { min_stock: 2 })).flags[0].label).toBe("pas di minimum");
+    expect(calcLine({ tersedia: "3" }, item("botol", { min_stock: 2 })).flags).toEqual([]);
     expect(calcLine({ tersedia: "0" }, item("botol")).flags[0].label).toBe("habis");
   });
 });
