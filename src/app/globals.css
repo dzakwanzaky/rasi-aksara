@@ -373,3 +373,19 @@ main > .eyebrow:first-child, .wrap > nav + .eyebrow { margin-top: 14px; }
 .rk-part dd.rk-off { color: var(--bad); font-weight: 600; }
 .rk-form { display: flex; gap: 8px; margin-top: 10px; }
 .rk-form input { flex: 1; min-width: 0; font-family: var(--mono); font-size: 16px; text-align: right; padding: 7px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); }
+
+/* Absen (clock in/out) */
+.ab-main { display: grid; gap: 12px; justify-items: start; }
+.ab-main.ab-in { border-color: var(--accent); box-shadow: inset 4px 0 0 var(--accent); }
+.ab-main .bigbtn { width: 100%; max-width: 360px; }
+.ab-status { margin: 0; font-size: 1.05rem; }
+.ab-ok { margin: 0; color: var(--accent); font-weight: 600; }
+.ab-friend summary { cursor: pointer; }
+.ab-friend[open] summary { margin-bottom: 8px; }
+.ab-shift { margin-block: 8px; padding-block: 10px; }
+.ab-people { list-style: none; padding: 0; margin: 6px 0 0; display: grid; gap: 6px; }
+.ab-people li { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+.ab-times { font-family: var(--mono); font-size: .9rem; margin: 0; }
+.ab-rekap { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
+.ab-rekap .panel { margin: 0; display: grid; gap: 6px; }
+.ab-rekap summary { cursor: pointer; }
