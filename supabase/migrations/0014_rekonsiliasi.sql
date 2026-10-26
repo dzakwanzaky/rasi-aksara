@@ -1,4 +1,4 @@
--- Rekonsiliasi harian (Zaky, 23 Okt 2026). Run after 0013_omzet.sql.
+-- Rekonsiliasi harian (Zaky, 23 Okt 2026). Run after 0013_omzet.sql. Updated 26 Okt: run again for the admin rules at the end.
 -- Omzet per payment method in Majoo against the money that came in: tunai from the drawer counts in Laporan
 -- (daily_reports), QRIS from the amount the owner types per sale date. Safe to run again.
 
@@ -26,3 +26,10 @@ drop policy if exists "admins qris masuk" on qris_masuk;
 create policy "admins qris masuk" on qris_masuk for all to authenticated using (is_admin()) with check (is_admin());
 drop policy if exists "admins bookkeeping settings" on bookkeeping_settings;
 create policy "admins bookkeeping settings" on bookkeeping_settings for all to authenticated using (is_admin()) with check (is_admin());
+
+-- The owner types drawer counts on the Rekonsiliasi page for any date (added 26 Okt 2026).
+-- Staff can still only fill in today and yesterday in Laporan.
+drop policy if exists "admins add reports" on daily_reports;
+create policy "admins add reports" on daily_reports for insert to authenticated with check (is_admin());
+drop policy if exists "admins edit reports" on daily_reports;
+create policy "admins edit reports" on daily_reports for update to authenticated using (is_admin()) with check (is_admin());

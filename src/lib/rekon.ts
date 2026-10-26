@@ -29,16 +29,17 @@ export type TunaiCheck = {
 };
 
 /**
- * Drawer check for one day. Each Laporan report is one drawer count: a "12" report (shift 1 & 2 together) covers the whole
- * day, otherwise shift 1 and shift 2 are checked separately against the Majoo cash of that shift and added up.
+ * Drawer check for one day. Each Laporan report is one drawer count: shift 1 and shift 2 are checked separately against the
+ * Majoo cash of that shift and added up; a "12" report (shift 1 & 2 together) covers the whole day when neither shift has one.
  */
 export function tunaiCheck(cash: CashByShift, reports: ShiftReport[]): TunaiCheck {
   const majoo = [...cash.values()].reduce((s, n) => s + n, 0);
-  const counted = reports.filter((r) => r.tunai_aktual != null);
-  const whole = counted.find((r) => r.shift === "12");
+  const counted = reports.filter((r) => r.tunai_aktual != null && ["1", "2", "12"].includes(r.shift));
+  // Separate shift counts win over a "shift 1 & 2" report, so the owner's per-shift count replaces a combined one.
+  const whole = counted.some((r) => r.shift === "1" || r.shift === "2") ? undefined : counted.find((r) => r.shift === "12");
   const groups = whole
     ? [{ report: whole, cash: majoo }]
-    : counted.map((r) => ({ report: r, cash: cash.get(r.shift) ?? 0 }));
+    : counted.filter((r) => r.shift !== "12").map((r) => ({ report: r, cash: cash.get(r.shift) ?? 0 }));
 
   const covered = new Set(whole ? [...cash.keys()] : counted.map((r) => r.shift));
   const missing = [...cash].filter(([shift, n]) => n > 0 && !covered.has(shift)).map(([shift]) => shift).sort();
@@ -77,3 +78,36 @@ export function dayState(t: TunaiCheck, q: QrisCheck, batas: number | null): { s
 }
 
 export const signed = (n: number, fmt: (n: number) => string) => (n > 0 ? "+" : "") + fmt(n);
+
+const MONTHS: Record<string, number> = {
+  jan: 1, feb: 2, mar: 3, apr: 4, mei: 5, may: 5, jun: 6, jul: 7, agu: 8, agt: 8, aug: 8, sep: 9, okt: 10, oct: 10, nov: 11, des: 12, dec: 12,
+};
+
+export type CashLine = { date: string; shift: "1" | "2"; amount: number };
+
+/**
+ * Drawer counts typed as text, one per line, the way the owner writes them in chat:
+ * "22 okt shift 1 517000", "24 okt shift 2 1.315.000", "23 Oktober shift 2 Rp 555.000".
+ * The amount is after taking out the modal. Lines that can't be read come back in `bad`.
+ */
+export function parseCashText(text: string, year: number): { rows: CashLine[]; bad: string[] } {
+  const rows: CashLine[] = [];
+  const bad: string[] = [];
+  for (const raw of text.split(/\r?\n/)) {
+    const line = raw.trim();
+    if (!line) continue;
+    const m = /^(\d{1,2})\s*([a-z]+)\.?\s+s\w*\s*([12])\b\D*?([\d.,]+)\s*(rb|ribu|k)?\s*$/i.exec(line.replace(/rp\.?/gi, " "));
+    const month = m ? MONTHS[m[2].toLowerCase().slice(0, 3)] : undefined;
+    const digits = m ? m[4].replace(/[.,](?=\d{3}\b)/g, "") : "";
+    let amount = /^\d+$/.test(digits) ? Number(digits) : NaN;
+    if (m?.[5]) amount *= 1000;
+    const day = m ? Number(m[1]) : 0;
+    const date = month ? new Date(Date.UTC(year, month - 1, day)) : null;
+    if (!m || !date || date.getUTCDate() !== day || !Number.isFinite(amount)) {
+      bad.push(line);
+      continue;
+    }
+    rows.push({ date: date.toISOString().slice(0, 10), shift: m[3] as "1" | "2", amount });
+  }
+  return { rows, bad };
+}
