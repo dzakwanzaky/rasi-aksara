@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { dayState, qrisCheck, tunaiCheck } from "./rekon";
+import { dayState, parseCashText, qrisCheck, tunaiCheck } from "./rekon";
 
 // Majoo cash on 19 Okt 2026: shift 1 813.000, shift 2 984.000.
 const CASH = new Map([["1", 813000], ["2", 984000]]);
@@ -18,6 +18,10 @@ describe("tunai", () => {
     const t = tunaiCheck(CASH, [report("12", 1990000)]);
     expect(t.seharusnya).toBe(1797000 + 200000);
     expect(t.selisih).toBe(-7000);
+  });
+  it("prefers separate shift counts over a shift 1 & 2 report", () => {
+    const t = tunaiCheck(CASH, [report("12", 1990000), report("1", 1013000), report("2", 1184000)]);
+    expect(t.selisih).toBe(0);
   });
   it("stays open while a shift with cash sales has no drawer count", () => {
     const t = tunaiCheck(CASH, [report("1", 1013000), report("2", null)]);
@@ -57,5 +61,27 @@ describe("day", () => {
   it("is open while QRIS sales have no bank amount, and fine with no QRIS sales", () => {
     expect(dayState(ok, qrisCheck(100000, null, null), 20000).state).toBe("belum");
     expect(dayState(ok, qrisCheck(0, null, null), 20000)).toEqual({ state: "ok", total: 0 });
+  });
+});
+
+describe("drawer counts typed as text", () => {
+  it("reads lines the way the owner writes them", () => {
+    const { rows, bad } = parseCashText(
+      "22 okt shiftt 1 517000\n22 oktt shiftt 2 773000\n23 okt shift 2 555.000\n\n24 Oktober shift 2 Rp 1.315.000\n21 okt s1 105rb",
+      2026,
+    );
+    expect(bad).toEqual([]);
+    expect(rows).toEqual([
+      { date: "2026-10-22", shift: "1", amount: 517000 },
+      { date: "2026-10-22", shift: "2", amount: 773000 },
+      { date: "2026-10-23", shift: "2", amount: 555000 },
+      { date: "2026-10-24", shift: "2", amount: 1315000 },
+      { date: "2026-10-21", shift: "1", amount: 105000 },
+    ]);
+  });
+  it("returns the lines it can't read", () => {
+    const { rows, bad } = parseCashText("ini koreksinya\n32 okt shift 1 1000\n22 okt shift 3 1000", 2026);
+    expect(rows).toEqual([]);
+    expect(bad).toHaveLength(3);
   });
 });

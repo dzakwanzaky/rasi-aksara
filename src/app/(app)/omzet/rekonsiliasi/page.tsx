@@ -2,11 +2,11 @@ import Link from "next/link";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import { isAdmin } from "@/lib/admin";
-import { formatNumber, rupiah, shiftLabel } from "@/lib/laporan";
+import { DEFAULT_MODAL, formatNumber, rupiah, shiftLabel } from "@/lib/laporan";
 import { addDays, methodOf } from "@/lib/omzet";
 import { dayState, qrisCheck, signed, tunaiCheck, type CashByShift, type Settings, type ShiftReport } from "@/lib/rekon";
 import { dateLabel } from "@/lib/types";
-import { saveQris, saveSettings } from "../actions";
+import { pasteCash, saveCash, saveQris, saveSettings } from "../actions";
 
 export const dynamic = "force-dynamic";
 
@@ -26,8 +26,8 @@ async function cashTrx(supabase: SupabaseClient, from: string, to: string) {
   }
 }
 
-export default async function Rekonsiliasi({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
-  const { error } = await searchParams;
+export default async function Rekonsiliasi({ searchParams }: { searchParams: Promise<{ error?: string; ok?: string }> }) {
+  const { error, ok } = await searchParams;
   const supabase = await createClient();
   if (!(await isAdmin(supabase))) {
     return (
@@ -84,7 +84,12 @@ export default async function Rekonsiliasi({ searchParams }: { searchParams: Pro
   const rows = days.map((d) => {
     const t = tunaiCheck(cash.get(d.sale_date) ?? new Map(), reports.get(d.sale_date) ?? []);
     const q = qrisCheck(Number(d.qris ?? 0), qrisIn.get(d.sale_date) ?? null, settings.qris_fee_pct);
-    return { d, t, q, ...dayState(t, q, settings.batas_selisih) };
+    // The owner's count per shift, after the modal, to prefill the boxes.
+    const net = (shift: string) => {
+      const r = (reports.get(d.sale_date) ?? []).find((x) => x.shift === shift);
+      return r?.tunai_aktual == null ? null : r.tunai_aktual - (r.modal ?? DEFAULT_MODAL);
+    };
+    return { d, t, q, net, ...dayState(t, q, settings.batas_selisih) };
   });
   const besar = rows.filter((r) => r.state === "besar").length;
   const belum = rows.filter((r) => r.state === "belum").length;
@@ -128,6 +133,16 @@ export default async function Rekonsiliasi({ searchParams }: { searchParams: Pro
         </p>
       </details>
 
+      <details className="panel">
+        <summary><b>Tempel hitungan laci</b> <span className="muted">banyak tanggal sekaligus</span></summary>
+        <form action={pasteCash} style={{ marginTop: 12 }}>
+          <textarea name="text" className="rk-paste" rows={5} placeholder={"22 okt shift 1 517000\n22 okt shift 2 773000\n23 okt shift 2 555.000"} />
+          <p className="help">Satu baris per shift: tanggal, shift, uang aktual <b>setelah dikurangi modal</b>. Angka lama untuk shift yang sama akan diganti.</p>
+          <div className="row"><button className="btn primary">Simpan</button></div>
+        </form>
+      </details>
+
+      {ok && <p className="note small">{ok}</p>}
       {error && <p className="error">{error}</p>}
       {noSplit && (
         <p className="note small">Ada hari yang diupload sebelum fitur Omzet. Upload ulang file Majoo-nya di <Link href="/omzet">Omzet</Link> supaya tunai/QRIS-nya terbaca.</p>
@@ -135,7 +150,7 @@ export default async function Rekonsiliasi({ searchParams }: { searchParams: Pro
 
       {rows.length ? (
         <ul className="rk-list">
-          {rows.map(({ d, t, q, state, total }) => (
+          {rows.map(({ d, t, q, net, state, total }) => (
             <li key={d.sale_date} id={`d${d.sale_date}`} className={`rk-day ${state}`}>
               <div className="rk-head">
                 <Link href={`/omzet/${d.sale_date}`}><b>{dateLabel(d.sale_date)}</b></Link>
@@ -154,10 +169,17 @@ export default async function Rekonsiliasi({ searchParams }: { searchParams: Pro
                     <dt>Hitungan laci</dt><dd>{money(t.aktual)}</dd>
                     <dt>Selisih</dt><dd className={t.selisih ? "rk-off" : ""}>{diff(t.selisih)}</dd>
                   </dl>
+                  <form action={saveCash} className="rk-cash">
+                    <input type="hidden" name="date" value={d.sale_date} />
+                    <span className="small muted">Uang aktual setelah modal</span>
+                    <label>Shift 1<input name="shift1" inputMode="numeric" placeholder="–" defaultValue={formatNumber(net("1"))} /></label>
+                    <label>Shift 2<input name="shift2" inputMode="numeric" placeholder="–" defaultValue={formatNumber(net("2"))} /></label>
+                    <button className="btn small">Simpan</button>
+                  </form>
                   {t.missing.length > 0 && (
                     <p className="small muted">
-                      Hitungan laci {t.missing.map((s) => MAJOO_SHIFT[s] ?? shiftLabel(s)).join(" & ")} belum diisi di{" "}
-                      <Link href={`/laporan?date=${d.sale_date}`}>Laporan</Link>.
+                      Hitungan laci {t.missing.map((s) => MAJOO_SHIFT[s] ?? shiftLabel(s)).join(" & ")} belum ada. Isi di atas, atau minta
+                      staff mengisi <Link href={`/laporan?date=${d.sale_date}`}>Laporan</Link>.
                     </p>
                   )}
                 </div>
@@ -195,7 +217,7 @@ export default async function Rekonsiliasi({ searchParams }: { searchParams: Pro
         <ul className="help">
           <li><b>Seharusnya di laci</b> = penjualan tunai Majoo + modal − pengeluaran dari laci, per shift. Modal dan pengeluaran diambil dari Laporan (modal kosong dianggap Rp 200.000).</li>
           <li>Kalau Laporan diisi sebagai &quot;Shift 1 &amp; 2&quot;, satu hitungan laci dibandingkan dengan tunai Majoo sehari penuh.</li>
-          <li>Hitungan laci diasumsikan sudah termasuk modal. Kalau staff menghitung tanpa modal, selisih tunai akan minus sebesar modal.</li>
+          <li><b>Hitungan laci</b> termasuk modal. Uang aktual yang Anda isi di sini ditulis setelah modal; aplikasi menambahkan modal dari Laporan (atau Rp 200.000) dan menyimpannya sebagai tunai aktual di Laporan shift itu.</li>
           <li><b>QRIS masuk</b> diisi per tanggal penjualan, bukan tanggal uang masuk. Jeda hanya membantu mencari tanggal di mutasi.</li>
           <li>Hari dengan angka yang belum ada ditandai &quot;belum lengkap&quot;, tidak dihitung nol.</li>
           <li>Ditampilkan {DAYS} hari terakhir yang punya upload Majoo.</li>
