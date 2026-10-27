@@ -1,7 +1,7 @@
 -- Absensi / clock in-out staff (Zaky, 25 Okt 2026). Run after 0009_items_admin_only.sql (needs is_admin()).
 -- Staff clock in and out from their own login, only from inside the Rasi Aksara area (browser GPS).
 -- The database itself checks the distance and sets the times, so a phone cannot send a fake clock.
--- Safe to run again.
+-- Safe to run again. After running it again, also run 0016_absen_selfie.sql again (it adds the selfie rule).
 
 -- Where the cafe is, and how far from it clock in/out is allowed. One row, set by an admin in the app (Absen > Rekap).
 create table if not exists attendance_settings (

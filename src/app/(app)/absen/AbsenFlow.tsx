@@ -1,12 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { SHIFTS, distanceM, geoErrorText, shiftLabel, type Shift } from "@/lib/absen";
+import { createClient } from "@/lib/supabase/client";
+import { Camera } from "../checklist/Camera";
 import { clockOther, clockSelf, type Fix, type Result } from "./actions";
 
 type Place = { lat: number; lng: number; radius: number };
+type Send = (fix: Fix, photo: string) => Promise<Result>;
+
+const todayJakarta = () => new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Jakarta" }).format(new Date());
 
 /** Reads the phone's GPS once, fresh (no cached position). */
 export function readLocation(): Promise<Fix> {
@@ -45,6 +50,9 @@ export function AbsenFlow({ place, open, doneToday, defaultShift, admin }: {
   const [msg, setMsg] = useState<Result>({});
   const [friend, setFriend] = useState({ username: "", password: "" });
   const [friendShift, setFriendShift] = useState<Shift>(defaultShift);
+  // Clocking in/out = selfie, then GPS check, then upload. GPS starts reading while the camera is open.
+  const [shooting, setShooting] = useState<{ label: string; title: string; send: Send } | null>(null);
+  const location = useRef<Promise<Fix | Error> | null>(null);
 
   if (!place) {
     return (
@@ -57,11 +65,19 @@ export function AbsenFlow({ place, open, doneToday, defaultShift, admin }: {
     );
   }
 
-  async function run(label: string, send: (fix: Fix) => Promise<Result>) {
-    setBusy(label);
+  function run(label: string, title: string, send: Send) {
     setMsg({});
+    location.current = readLocation().catch((e: Error) => e);
+    setShooting({ label, title, send });
+  }
+
+  async function afterShot(photo: Blob) {
+    const job = shooting!;
+    setShooting(null);
+    setBusy(job.label);
     try {
-      const fix = await readLocation();
+      const fix = await location.current!;
+      if (fix instanceof Error) throw fix;
       const dist = distanceM(place!.lat, place!.lng, fix.lat, fix.lng);
       if (dist > place!.radius) {
         setMsg({
@@ -70,7 +86,14 @@ export function AbsenFlow({ place, open, doneToday, defaultShift, admin }: {
         });
         return;
       }
-      const res = await send(fix);
+      const path = `${todayJakarta()}/${crypto.randomUUID()}.jpg`;
+      const up = await createClient().storage.from("absen-photos").upload(path, photo, { contentType: "image/jpeg" });
+      if (up.error) {
+        throw new Error(/bucket not found/i.test(up.error.message)
+          ? "Fitur selfie belum aktif. Minta admin menjalankan 0016_absen_selfie.sql di Supabase."
+          : `Selfie gagal terkirim: ${up.error.message}. Cek internet lalu coba lagi.`);
+      }
+      const res = await job.send(fix, path);
       setMsg(res);
       if (res.ok) {
         setFriend({ username: "", password: "" });
@@ -89,20 +112,20 @@ export function AbsenFlow({ place, open, doneToday, defaultShift, admin }: {
         {open ? (
           <>
             <p className="ab-status">Sudah clock in jam <b>{open.clockIn}</b> · {shiftLabel(open.shift)}</p>
-            <button className="btn primary bigbtn" disabled={!!busy} onClick={() => run("out", (fix) => clockSelf("out", shift, fix))}>
-              {busy === "out" ? "Membaca lokasi…" : "Clock out"}
+            <button className="btn primary bigbtn" disabled={!!busy} onClick={() => run("out", "Selfie clock out", (fix, photo) => clockSelf("out", shift, fix, photo))}>
+              {busy === "out" ? "Mengirim…" : "📷 Clock out"}
             </button>
           </>
         ) : (
           <>
             <p className="ab-status">{doneToday.length ? `Sudah selesai hari ini: ${doneToday.join(", ")}` : "Belum clock in hari ini."}</p>
             <ShiftPick value={shift} onChange={setShift} />
-            <button className="btn primary bigbtn" disabled={!!busy} onClick={() => run("in", (fix) => clockSelf("in", shift, fix))}>
-              {busy === "in" ? "Membaca lokasi…" : "Clock in"}
+            <button className="btn primary bigbtn" disabled={!!busy} onClick={() => run("in", "Selfie clock in", (fix, photo) => clockSelf("in", shift, fix, photo))}>
+              {busy === "in" ? "Mengirim…" : "📷 Clock in"}
             </button>
           </>
         )}
-        <p className="muted small">Lokasi HP dicek saat tombol ditekan. Harus berada di Rasi Aksara (maks. {place.radius} m).</p>
+        <p className="muted small">Tombol membuka kamera depan untuk selfie, lalu lokasi HP dicek. Harus berada di Rasi Aksara (maks. {place.radius} m). Jam dicatat dari server.</p>
         {msg.ok && <p className="ab-ok">✓ {msg.ok}</p>}
         {msg.error && <p className="error">{msg.error}</p>}
       </div>
@@ -110,7 +133,7 @@ export function AbsenFlow({ place, open, doneToday, defaultShift, admin }: {
       <details className="panel ab-friend">
         <summary><b>HP bersama?</b> <span className="muted">Absen untuk teman pakai akunnya</span></summary>
         <p className="help">
-          Teman mengetik username dan password-nya sendiri. Akun di HP ini tidak ikut keluar.
+          Teman mengetik username dan password-nya sendiri, lalu selfie. Akun di HP ini tidak ikut keluar.
         </p>
         <div className="formgrid">
           <label className="f">Username
@@ -126,15 +149,19 @@ export function AbsenFlow({ place, open, doneToday, defaultShift, admin }: {
         <ShiftPick value={friendShift} onChange={setFriendShift} />
         <div className="row" style={{ marginTop: 10 }}>
           <button className="btn primary" disabled={!!busy}
-            onClick={() => run("fin", (fix) => clockOther("in", friendShift, fix, friend.username, friend.password))}>
-            {busy === "fin" ? "Membaca lokasi…" : "Clock in teman"}
+            onClick={() => run("fin", `Selfie clock in ${friend.username}`, (fix, photo) =>
+              clockOther("in", friendShift, fix, photo, friend.username, friend.password))}>
+            {busy === "fin" ? "Mengirim…" : "📷 Clock in teman"}
           </button>
           <button className="btn" disabled={!!busy}
-            onClick={() => run("fout", (fix) => clockOther("out", friendShift, fix, friend.username, friend.password))}>
-            {busy === "fout" ? "Membaca lokasi…" : "Clock out teman"}
+            onClick={() => run("fout", `Selfie clock out ${friend.username}`, (fix, photo) =>
+              clockOther("out", friendShift, fix, photo, friend.username, friend.password))}>
+            {busy === "fout" ? "Mengirim…" : "📷 Clock out teman"}
           </button>
         </div>
       </details>
+
+      {shooting && <Camera selfie title={shooting.title} onShot={afterShot} onClose={() => setShooting(null)} />}
     </>
   );
 }

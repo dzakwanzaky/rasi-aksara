@@ -23,6 +23,8 @@ export type AttendanceRow = {
   in_dist_m: number | null;
   out_dist_m: number | null;
   koreksi: string | null;
+  in_photo?: string | null;
+  out_photo?: string | null;
 };
 
 /** Metres between two points on the earth. */

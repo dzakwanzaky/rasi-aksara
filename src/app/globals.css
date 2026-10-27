@@ -395,3 +395,7 @@ main > .eyebrow:first-child, .wrap > nav + .eyebrow { margin-top: 14px; }
 .rk-cash input, .rk-paste { min-width: 0; width: 100%; font-family: var(--mono); font-size: 16px; padding: 7px 10px; border-radius: 8px; border: 1px solid var(--line); background: var(--surface); color: var(--ink); }
 .rk-cash input { text-align: right; }
 .rk-paste { resize: vertical; }
+.ck-camera video.mirror { transform: scaleX(-1); }
+.ab-selfie { display: grid; gap: 2px; text-decoration: none; }
+.ab-selfie img { width: 84px; height: 112px; object-fit: cover; border-radius: 8px; border: 1px solid var(--line); background: var(--line); }
+.ab-selfie small { font-size: .72rem; color: var(--muted); }

@@ -16,9 +16,11 @@ export type Result = { ok?: string; error?: string };
 const MIGRATION_HINT = "Sudah jalankan 0015_absensi.sql di Supabase?";
 
 const friendly = (message: string) =>
-  /relation .*attendance|does not exist/.test(message) ? `Tabel absensi belum ada. ${MIGRATION_HINT}` : message;
+  /relation .*attendance|does not exist/.test(message) ? `Tabel absensi belum ada. ${MIGRATION_HINT}`
+  : /in_photo|out_photo/.test(message) ? "Fitur selfie belum aktif. Minta admin menjalankan 0016_absen_selfie.sql di Supabase."
+  : message;
 
-async function clock(supabase: SupabaseClient, kind: "in" | "out", shift: Shift, fix: Fix): Promise<Result> {
+async function clock(supabase: SupabaseClient, kind: "in" | "out", shift: Shift, fix: Fix, photo: string): Promise<Result> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { error: "Belum masuk akun." };
   const name = accountLabel(user.email);
@@ -31,7 +33,7 @@ async function clock(supabase: SupabaseClient, kind: "in" | "out", shift: Shift,
     if (open) return { error: `${name} sudah clock in hari ini dan belum clock out.` };
     const { error } = await supabase.from("attendance").insert({
       user_id: user.id, username: name, work_date: today, shift, clock_in: new Date().toISOString(),
-      in_lat: fix.lat, in_lng: fix.lng, in_accuracy_m: Math.round(fix.accuracy),
+      in_lat: fix.lat, in_lng: fix.lng, in_accuracy_m: Math.round(fix.accuracy), in_photo: photo,
     });
     if (error) return { error: error.code === "23505" ? `${name} sudah clock in.` : friendly(error.message) };
     return { ok: `${name} berhasil clock in.` };
@@ -39,31 +41,36 @@ async function clock(supabase: SupabaseClient, kind: "in" | "out", shift: Shift,
 
   if (!open) return { error: `${name} belum clock in hari ini.` };
   const { error } = await supabase.from("attendance").update({
-    out_lat: fix.lat, out_lng: fix.lng, out_accuracy_m: Math.round(fix.accuracy),
+    out_lat: fix.lat, out_lng: fix.lng, out_accuracy_m: Math.round(fix.accuracy), out_photo: photo,
   }).eq("id", open.id);
   if (error) return { error: friendly(error.message) };
   return { ok: `${name} berhasil clock out.` };
 }
 
 const goodFix = (f: Fix) => Number.isFinite(f?.lat) && Number.isFinite(f?.lng) && Number.isFinite(f?.accuracy);
+const goodPhoto = (p: string) => /^\d{4}-\d{2}-\d{2}\/[\w-]+\.jpg$/.test(p ?? "");
 
 /** Clock in or out as the account signed in on this phone. */
-export async function clockSelf(kind: "in" | "out", shift: Shift, fix: Fix): Promise<Result> {
+export async function clockSelf(kind: "in" | "out", shift: Shift, fix: Fix, photo: string): Promise<Result> {
   if (!goodFix(fix)) return { error: "Lokasi HP tidak terbaca." };
-  const res = await clock(await createClient(), kind, shift, fix);
+  if (!goodPhoto(photo)) return { error: "Selfie belum terkirim." };
+  const res = await clock(await createClient(), kind, shift, fix, photo);
   revalidatePath("/absen");
   return res;
 }
 
 /** Shared phone: clock in or out for another staff member, who proves it is them with their own password.
  * Their sign-in is used only for this one request and does not replace the account on this phone. */
-export async function clockOther(kind: "in" | "out", shift: Shift, fix: Fix, username: string, password: string): Promise<Result> {
+export async function clockOther(
+  kind: "in" | "out", shift: Shift, fix: Fix, photo: string, username: string, password: string,
+): Promise<Result> {
   if (!goodFix(fix)) return { error: "Lokasi HP tidak terbaca." };
+  if (!goodPhoto(photo)) return { error: "Selfie belum terkirim." };
   if (!username.trim() || !password) return { error: "Isi username dan password." };
   const other = createPlainClient(supabaseUrl, supabaseKey, { auth: { persistSession: false, autoRefreshToken: false } });
   const { error: signInError } = await other.auth.signInWithPassword({ email: loginEmail(username), password });
   if (signInError) return { error: "Username atau password salah." };
-  const res = await clock(other, kind, shift, fix);
+  const res = await clock(other, kind, shift, fix, photo);
   await other.auth.signOut({ scope: "local" });
   revalidatePath("/absen");
   return res;
