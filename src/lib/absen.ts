@@ -4,8 +4,9 @@
 export type Shift = "pagi" | "malam";
 
 export const SHIFTS: { id: Shift; label: string; hours: string }[] = [
-  { id: "pagi", label: "Shift pagi", hours: "07.00–14.30" },
-  { id: "malam", label: "Shift malam", hours: "14.00–22.30" },
+  // Zaky, 27 Okt 2026: 8 hours each, overlapping 30 minutes for handover. The id stays 'malam' in the database.
+  { id: "pagi", label: "Shift pagi", hours: "07.00–15.00" },
+  { id: "malam", label: "Shift siang", hours: "14.30–22.30" },
 ];
 
 export const shiftLabel = (s: string) => SHIFTS.find((x) => x.id === s)?.label ?? s;

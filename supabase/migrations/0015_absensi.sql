@@ -26,7 +26,7 @@ create table if not exists attendance (
   user_id uuid not null references auth.users (id),
   username text not null,
   work_date date not null,          -- Jakarta date of the clock in
-  shift text not null check (shift in ('pagi', 'malam')),
+  shift text not null check (shift in ('pagi', 'malam')), -- 'malam' is shown as Shift siang (14.30-22.30)
   clock_in timestamptz not null,
   in_lat double precision, in_lng double precision, in_accuracy_m real, in_dist_m real,
   clock_out timestamptz,
