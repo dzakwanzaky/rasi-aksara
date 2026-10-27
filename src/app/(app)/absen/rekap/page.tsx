@@ -30,7 +30,8 @@ export default async function Rekap({ searchParams }: { searchParams: Promise<{ 
   const monthStart = date.slice(0, 8) + "01";
   const cols = "id, username, work_date, shift, clock_in, clock_out, in_dist_m, out_dist_m, koreksi";
   const [{ data: dayRows, error }, { data: monthRows }, { data: place }] = await Promise.all([
-    supabase.from("attendance").select(cols).eq("work_date", date).order("clock_in"),
+    // in_photo/out_photo arrive with 0016; select("*") keeps the page working before that migration is run.
+    supabase.from("attendance").select("*").eq("work_date", date).order("clock_in"),
     supabase.from("attendance").select(cols).gte("work_date", monthStart).lte("work_date", date),
     supabase.from("attendance_settings").select("lat, lng, radius_m, updated_by_name, updated_at").eq("id", 1).maybeSingle(),
   ]);
@@ -46,6 +47,20 @@ export default async function Rekap({ searchParams }: { searchParams: Promise<{ 
   }
 
   const rows = (dayRows ?? []) as AttendanceRow[];
+  const photoPaths = rows.flatMap((r) => [r.in_photo, r.out_photo]).filter((p): p is string => !!p);
+  const signed = photoPaths.length
+    ? (await supabase.storage.from("absen-photos").createSignedUrls(photoPaths, 60 * 60 * 12)).data
+    : [];
+  const urlOf = new Map((signed ?? []).map((u) => [u.path, u.signedUrl]));
+  const selfie = (path: string | null | undefined, label: string) => {
+    const url = path ? urlOf.get(path) : null;
+    return url ? (
+      <a href={url} target="_blank" rel="noreferrer" className="ab-selfie">
+        <img src={url} alt={`Selfie ${label}`} loading="lazy" />
+        <small>{label}</small>
+      </a>
+    ) : null;
+  };
   const month = summarize((monthRows ?? []) as AttendanceRow[], today);
   const next = shiftDay(date, 1);
 
@@ -86,6 +101,9 @@ export default async function Rekap({ searchParams }: { searchParams: Promise<{ 
                       ? <><b>{clock(r.clock_out)}</b> {r.out_dist_m != null && <span className="muted small">({meters(r.out_dist_m)})</span>}</>
                       : date < today ? <span className="flag bad">lupa clock out</span> : <span className="flag warn">masih bekerja</span>}
                   </p>
+                  {(r.in_photo || r.out_photo) && (
+                    <div className="row">{selfie(r.in_photo, `masuk ${clock(r.clock_in)}`)}{selfie(r.out_photo, `keluar ${clock(r.clock_out)}`)}</div>
+                  )}
                   {r.koreksi && <p className="muted small">{r.koreksi}</p>}
                   <details>
                     <summary className="muted small">Ubah</summary>

@@ -5,7 +5,9 @@ import { useEffect, useRef, useState } from "react";
 /** Full-screen live camera. Photo proof must be taken on the spot (Zaky, 18 Okt 2026), so there is
  * no file picker: the picture comes straight from the camera stream, never from the gallery.
  * The frame is shrunk to at most 1280 px as a JPEG (~100 KB). */
-export function Camera({ title, onShot, onClose }: { title: string; onShot: (photo: Blob) => void; onClose: () => void }) {
+export function Camera({ title, onShot, onClose, selfie = false }: {
+  title: string; onShot: (photo: Blob) => void; onClose: () => void; selfie?: boolean;
+}) {
   const video = useRef<HTMLVideoElement>(null);
   const [problem, setProblem] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
@@ -20,7 +22,7 @@ export function Camera({ title, onShot, onClose }: { title: string; onShot: (pho
       }
       try {
         stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: { ideal: "environment" }, width: { ideal: 1920 }, height: { ideal: 1080 } },
+          video: { facingMode: { ideal: selfie ? "user" : "environment" }, width: { ideal: 1920 }, height: { ideal: 1080 } },
           audio: false,
         });
         if (stopped) { stream.getTracks().forEach((t) => t.stop()); return; }
@@ -38,7 +40,7 @@ export function Camera({ title, onShot, onClose }: { title: string; onShot: (pho
       }
     })();
     return () => { stopped = true; stream?.getTracks().forEach((t) => t.stop()); };
-  }, []);
+  }, [selfie]);
 
   function shoot() {
     const v = video.current;
@@ -57,7 +59,7 @@ export function Camera({ title, onShot, onClose }: { title: string; onShot: (pho
       {problem ? (
         <p className="ck-camera-problem">{problem}</p>
       ) : (
-        <video ref={video} playsInline muted onLoadedMetadata={() => setReady(true)} />
+        <video ref={video} playsInline muted className={selfie ? "mirror" : undefined} onLoadedMetadata={() => setReady(true)} />
       )}
       <div className="ck-camera-bar">
         <button type="button" className="btn" onClick={onClose}>Batal</button>
