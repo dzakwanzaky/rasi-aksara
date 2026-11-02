@@ -41,6 +41,10 @@ export default async function RiwayatLaporan({ searchParams }: { searchParams: P
         <div><span className="muted">Total plus</span><b className="lp-plus">{rupiah(t.plus)}</b></div>
         <div><span className="muted">Total minus</span><b className={t.minus ? "lp-minus" : undefined}>{rupiah(Math.abs(t.minus))}</b></div>
       </div>
+      <p className="row lp-export">
+        <a className="btn" href={`/laporan/csv?bulan=${month}`}>Unduh Excel {monthLabel(month)}</a>
+        <a className="btn" href="/laporan/csv">Unduh semua</a>
+      </p>
 
       <ul className="days">
         {shown.map((r) => {
