@@ -404,3 +404,12 @@ main > .eyebrow:first-child, .wrap > nav + .eyebrow { margin-top: 14px; }
 .notif .notif-title { font-weight: 600; }
 .notif.on .notif-title { font-size: .88rem; }
 .notif > .muted:last-child { margin: 8px 0 0; }
+
+/* "Pasang aplikasi" banner shown on first open (InstallBanner.tsx) */
+.install { position: fixed; left: 12px; right: 12px; bottom: calc(12px + env(safe-area-inset-bottom)); z-index: 40; max-width: 560px; margin-inline: auto;
+  display: flex; gap: 12px; align-items: center; flex-wrap: wrap; background: var(--surface); border: 1px solid var(--accent); border-radius: 12px;
+  padding: 12px 14px; box-shadow: 0 8px 24px rgba(24, 33, 29, .18); }
+.install img { border-radius: 10px; flex: none; }
+.install-text { flex: 1 1 180px; min-width: 0; display: flex; flex-direction: column; gap: 2px; font-size: .86rem; color: var(--muted); }
+.install-text > b { color: var(--ink); font-size: .95rem; }
+.install-actions { display: flex; gap: 8px; margin-left: auto; }
