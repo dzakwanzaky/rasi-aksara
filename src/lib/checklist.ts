@@ -10,7 +10,12 @@ export type CheckItem = {
   link?: { href: string; label: string };
   /** Effort for the Performa dashboard's fair split: 1 quick (default), 2 a few minutes, 3 heavy cleaning or counting. */
   points?: 1 | 2 | 3;
+  /** First day the item is on the checklist; earlier days don't count it (so their scores stay as they were). */
+  since?: string;
 };
+
+/** Whether an item is on the checklist of `date` (every item when no date is given). */
+export const itemOn = (item: CheckItem, date?: string) => !item.since || !date || date >= item.since;
 
 export type Section = {
   title: string;
@@ -32,6 +37,28 @@ export type Sheet = {
 
 const TOKEN = { label: "Sisa token", unit: "kWh", numeric: true };
 const RP = { label: "Jumlah", prefix: "Rp", numeric: true };
+
+/**
+ * New SOP (Zaky, 13 Nov 2026): every shift prepares bar and kitchen for the NEXT shift, so it starts ready.
+ * Shift 1 does it before handover (Ganti shift sheet, counted for the morning shift), shift 2 at closing for tomorrow.
+ */
+export const PREP_FROM = "2026-11-14";
+const prepBar = (time?: string): CheckItem[] => [
+  { key: "prep-espresso", points: 2, time, since: PREP_FROM, text: "Espresso: siapkan 1 carafe" },
+  { key: "prep-susu", points: 2, time, since: PREP_FROM, text: "Mix milk: 4 carafe penuh" },
+  { key: "prep-sirup", points: 2, time, since: PREP_FROM, text: "Semua sirup: buat kalau sudah kritis" },
+  { key: "prep-milktea", time, since: PREP_FROM, text: "Powder milk tea" },
+  { key: "prep-maxxtea", time, since: PREP_FROM, text: "Powder Maxxtea" },
+  { key: "prep-kettle", time, since: PREP_FROM, text: "Isi air kettle" },
+];
+const prepKitchen = (time?: string): CheckItem[] => [
+  { key: "prep-ayam-bakar", points: 3, time, since: PREP_FROM, text: "Ayam bakar" },
+  { key: "prep-platter", points: 2, time, since: PREP_FROM, text: "Platter" },
+  { key: "prep-sambal", points: 3, time, since: PREP_FROM, text: "Sambal terasi" },
+  { key: "prep-kwetiau", points: 2, time, since: PREP_FROM, text: "Mendadarkan kwetiau" },
+  { key: "prep-geprek", points: 2, time, since: PREP_FROM, text: "Marinasi ayam geprek" },
+  { key: "prep-ayam-kwetiau", points: 2, time, since: PREP_FROM, text: "Ayam kwetiau" },
+];
 
 export const SHEETS: Sheet[] = [
   {
@@ -143,6 +170,8 @@ export const SHEETS: Sheet[] = [
     hours: "14.00 – 14.30",
     noteLabel: "Catatan handover / kondisi khusus",
     sections: [
+      { title: "Shift 1 siapkan bar untuk shift 2", hint: "Dikerjakan shift 1 sebelum ganti shift, masuk poin shift pagi.", items: prepBar() },
+      { title: "Shift 1 siapkan kitchen untuk shift 2", items: prepKitchen() },
       {
         title: "Shift 2 datang",
         items: [
@@ -188,11 +217,14 @@ export const SHEETS: Sheet[] = [
         ],
       },
       {
-        title: "Preparing bar & kitchen",
+        title: "Siapkan bar untuk shift pagi besok",
         hint: "Lakukan saat sudah slow, tidak harus tunggu closing.",
+        items: prepBar("Slow"),
+      },
+      {
+        title: "Siapkan kitchen untuk shift pagi besok",
         items: [
-          { key: "prep-bar", points: 2, time: "Slow", text: "Bar: siapkan/prep bahan untuk opening besok" },
-          { key: "prep-dapur", points: 3, time: "Slow", text: "Kitchen: prep bahan yang bisa disiapkan malam ini untuk besok" },
+          ...prepKitchen("Slow"),
           { key: "wrap", points: 2, time: "Slow", text: "Kitchen: wrap & label bahan sisa, masukkan kulkas/freezer" },
           { key: "buang", time: "Slow", text: "Buang bahan yang sudah tidak layak pakai" },
         ],
@@ -284,7 +316,7 @@ export function tickKeys(sheet: Sheet, hourNow = 24, date?: string): string[] {
   return sheet.sections.flatMap((s) => {
     if (s.kind === "reminder") return [];
     if (s.kind === "hourly") return hoursFor(date).filter((h) => h <= hourNow).flatMap((h) => s.items.map((i) => hourlyKey(h, i.key)));
-    return s.items.map((i) => itemKey(sheet.id, i.key));
+    return s.items.filter((i) => itemOn(i, date)).map((i) => itemKey(sheet.id, i.key));
   });
 }
 

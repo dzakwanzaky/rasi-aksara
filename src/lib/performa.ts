@@ -56,7 +56,7 @@ export function minutesInto(date: string, iso: string): number {
 
 export const hhmm = (min: number) => `${String(Math.floor(min / 60)).padStart(2, "0")}.${String(min % 60).padStart(2, "0")}`;
 
-type ItemInfo = { label: string; due: number; hour?: number; points: number };
+type ItemInfo = { label: string; due: number; hour?: number; points: number; since?: string };
 const INFO = new Map<string, ItemInfo>();
 for (const sheet of SHEETS) {
   for (const s of sheet.sections) {
@@ -71,14 +71,15 @@ for (const sheet of SHEETS) {
       }
       const m = /^(\d{2})\.(\d{2})$/.exec(i.time ?? "");
       const due = m ? Number(m[1]) * 60 + Number(m[2]) + LATE_AFTER_MIN : SHEET_END[sheet.id];
-      INFO.set(itemKey(sheet.id, i.key), { label: `${sheet.title} · ${i.text}`, due, points: i.points ?? 1 });
+      INFO.set(itemKey(sheet.id, i.key), { label: `${sheet.title} · ${i.text}`, due, points: i.points ?? 1, since: i.since });
     }
   }
 }
 /** What a checklist key is called and when it is due; undefined for notes and keys no longer on the list. */
 export const itemInfo = (key: string) => INFO.get(key);
 /** Tickable once-a-day items (not hourly), for counting what nobody ticked. */
-const DAILY_KEYS = [...INFO.entries()].filter(([, v]) => v.hour == null).map(([k]) => k);
+const DAILY = [...INFO.entries()].filter(([, v]) => v.hour == null);
+const dailyKeys = (date: string) => DAILY.filter(([, v]) => !v.since || date >= v.since).map(([k]) => k);
 
 export type Row = { check_date: string; key: string; done: boolean; done_by: string | null; done_at: string | null };
 
@@ -125,14 +126,19 @@ export type ShiftCheck = {
   own: { name: string; points: number; target: number; passed: boolean | null }[];
 };
 
-const sheetKeys = (id: SheetId) => tickKeys(SHEETS.find((s) => s.id === id)!);
+const sheetKeys = (id: SheetId, date: string) => tickKeys(SHEETS.find((s) => s.id === id)!, 24, date);
 const roundKeys = (hours: number[]) => {
   const items = SHEETS.find((s) => s.id === "operasional")!.sections.find((s) => s.kind === "hourly")!.items;
   return hours.flatMap((h) => items.map((i) => hourlyKey(h, i.key)));
 };
+/** Shift 1 prepares for shift 2 on the Ganti shift sheet (Zaky, 13 Nov 2026); those items belong to the morning shift. */
+export const isMorningPrep = (key: string) => key.startsWith("handover:prep-");
 const shiftKeys = (morning: boolean, date: string) => {
   const rounds = roundKeys(hoursFor(date).filter((h) => (morning ? h < 14 : h >= 14)));
-  return morning ? [...sheetKeys("opening"), ...rounds] : [...sheetKeys("handover"), ...rounds, ...sheetKeys("closing")];
+  const handover = sheetKeys("handover", date);
+  return morning
+    ? [...sheetKeys("opening", date), ...handover.filter(isMorningPrep), ...rounds]
+    : [...handover.filter((k) => !isMorningPrep(k)), ...rounds, ...sheetKeys("closing", date)];
 };
 
 export type Round = { date: string; hour: number; done: number; total: number; onDuty: string[] };
@@ -219,7 +225,7 @@ export function summarize(rows: Row[], opts: { from: string; to: string; today: 
         return (mine.filter(half).length * 2 >= mine.length) === morning;
       }).map(([name]) => name);
       crew.set(morning, members);
-      const inShift = done.filter((r) => !r.key.startsWith("handover:") && half(r) === morning && members.includes(r.done_by || "?"));
+      const inShift = done.filter((r) => (!r.key.startsWith("handover:") || isMorningPrep(r.key)) && half(r) === morning && members.includes(r.done_by || "?"));
       if (!inShift.length || !members.length) continue;
       const pts = (list: Row[]) => list.reduce((n, r) => n + itemInfo(r.key)!.points, 0);
       const total = pts(inShift);
@@ -247,7 +253,7 @@ export function summarize(rows: Row[], opts: { from: string; to: string; today: 
       for (const name of round.onDuty) stat(name)[n === 0 ? "missed" : "partial"]++;
     }
 
-    if (date < opts.today) sum.skipped += DAILY_KEYS.filter((k) => !day?.get(k)?.done).length;
+    if (date < opts.today) sum.skipped += dailyKeys(date).filter((k) => !day?.get(k)?.done).length;
 
     // Shift targets.
     for (const morning of [true, false]) {

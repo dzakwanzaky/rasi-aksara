@@ -5,7 +5,7 @@ import { createContext, useContext, useEffect, useMemo, useRef, useState } from 
 import { Camera } from "./Camera";
 import { createClient } from "@/lib/supabase/client";
 import {
-  SHEETS, hoursFor, hourlyKey, itemKey, itemNoteKey, noteKey, readAmount, rupiah, tickKeys,
+  SHEETS, hoursFor, hourlyKey, itemOn, itemKey, itemNoteKey, noteKey, readAmount, rupiah, tickKeys,
   type CheckItem, type Entry, type Section, type Sheet, type SheetId,
 } from "@/lib/checklist";
 
@@ -221,7 +221,7 @@ export function ChecklistFlow(props: {
       {/* A past day is history: every box and tick below is locked (Zaky, 14 Okt 2026). */}
       <fieldset className="ck-lock" disabled={readOnly}>
 
-      {sheet.sections.map((s) => (
+      {sheet.sections.map((s) => ({ ...s, items: s.items.filter((i) => itemOn(i, date)) })).filter((s) => s.items.length).map((s) => (
         <section key={s.title} className="ck-section">
           <h3>{s.title}</h3>
           {s.hint && <p className="muted ck-hint">{s.hint}</p>}
