@@ -4,7 +4,11 @@ import { configProblem, supabaseKey, supabaseUrl } from "@/lib/supabase/env";
 
 // Refreshes the Supabase session cookie and sends signed-out visitors to /login.
 export async function middleware(request: NextRequest) {
-  const isPublic = request.nextUrl.pathname.startsWith("/login") || request.nextUrl.pathname.startsWith("/setup");
+  const path = request.nextUrl.pathname;
+  // The app's install files must load without a login, and the database's timer calls /api/push with its own secret.
+  if (path === "/sw.js" || path === "/manifest.webmanifest" || path.startsWith("/icons/") || path.startsWith("/api/push/"))
+    return NextResponse.next();
+  const isPublic = path.startsWith("/login") || path.startsWith("/setup");
   if (configProblem()) {
     if (isPublic) return NextResponse.next();
     return NextResponse.redirect(new URL("/setup", request.url));

@@ -396,3 +396,11 @@ main > .eyebrow:first-child, .wrap > nav + .eyebrow { margin-top: 14px; }
 .rk-cash input { text-align: right; }
 .rk-paste { resize: vertical; }
 .lp-export { margin: 12px 0 0; }
+
+/* Round notification opt-in on the Checklist page */
+.notif { background: var(--accent-soft); border: 1px solid var(--accent); border-radius: 10px; padding: 12px 14px; margin-block: 12px; }
+.notif.on { background: var(--surface); border-color: var(--line); padding-block: 8px; }
+.notif p { margin: 0 0 8px; }
+.notif .notif-title { font-weight: 600; }
+.notif.on .notif-title { font-size: .88rem; }
+.notif > .muted:last-child { margin: 8px 0 0; }

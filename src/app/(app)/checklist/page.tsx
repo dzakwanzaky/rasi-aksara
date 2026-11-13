@@ -6,6 +6,7 @@ import { accountLabel } from "@/lib/staff";
 import { SHEETS, sheetForTime, type Entry, type SheetId } from "@/lib/checklist";
 import { ChecklistFlow, type Photo } from "./ChecklistFlow";
 import { DatePick } from "./DatePick";
+import { NotifCard } from "../NotifCard";
 
 const shiftDay = (date: string, days: number) => {
   const d = new Date(date + "T00:00:00Z");
@@ -80,6 +81,7 @@ export default async function Checklist({ searchParams }: { searchParams: Promis
           ? <Link className="btn small" href={`/checklist?date=${next}&lembar=${sheet}`} aria-label="Hari berikutnya">›</Link>
           : <span />}
       </div>
+      {isToday && <NotifCard />}
       <ChecklistFlow
         key={date}
         date={date}
