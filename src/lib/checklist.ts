@@ -33,6 +33,24 @@ export type Sheet = {
 const TOKEN = { label: "Sisa token", unit: "kWh", numeric: true };
 const RP = { label: "Jumlah", prefix: "Rp", numeric: true };
 
+/** New SOP (Zaky, 13 Nov 2026): every shift prepares bar and kitchen. Same items on Opening and Ganti shift. */
+const prepBar = (time?: string): CheckItem[] => [
+  { key: "prep-espresso", points: 2, time, text: "Espresso: siapkan 1 carafe" },
+  { key: "prep-susu", points: 2, time, text: "Mix milk: 4 carafe penuh" },
+  { key: "prep-sirup", points: 2, time, text: "Semua sirup: buat kalau sudah kritis" },
+  { key: "prep-milktea", time, text: "Powder milk tea" },
+  { key: "prep-maxxtea", time, text: "Powder Maxxtea" },
+  { key: "prep-kettle", time, text: "Isi air kettle" },
+];
+const prepKitchen = (time?: string): CheckItem[] => [
+  { key: "prep-ayam-bakar", points: 3, time, text: "Ayam bakar" },
+  { key: "prep-platter", points: 2, time, text: "Platter" },
+  { key: "prep-sambal", points: 3, time, text: "Sambal terasi" },
+  { key: "prep-kwetiau", points: 2, time, text: "Mendadarkan kwetiau" },
+  { key: "prep-geprek", points: 2, time, text: "Marinasi ayam geprek" },
+  { key: "prep-ayam-2", points: 2, time, text: "Prepare ayam kentaki" },
+];
+
 export const SHEETS: Sheet[] = [
   {
     id: "opening",
@@ -78,6 +96,8 @@ export const SHEETS: Sheet[] = [
           { key: "upsell", time: "07.15", text: "Cek stok snack & donat/pudding (upsell items)" },
         ],
       },
+      { title: "Prepare bar", items: prepBar("07.25") },
+      { title: "Prepare kitchen", items: prepKitchen("07.25") },
       {
         title: "Setup kasir",
         items: [
@@ -151,6 +171,8 @@ export const SHEETS: Sheet[] = [
           { key: "lapor-bersih", text: "Shift 2 laporkan kondisi kebersihan ke Shift 1 (ada masalah? sampaikan)" },
         ],
       },
+      { title: "Prepare bar (shift 2)", items: prepBar() },
+      { title: "Prepare kitchen (shift 2)", items: prepKitchen() },
       {
         title: "Shift 1 menyampaikan",
         items: [

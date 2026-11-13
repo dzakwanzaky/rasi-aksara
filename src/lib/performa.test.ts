@@ -103,7 +103,7 @@ describe("summarize", () => {
   it("gives each person a target of 80% of an even split of the shift's points", () => {
     const opening = SHEETS.find((x) => x.id === "opening")!;
     const keys = tickKeys(opening);
-    // Rifky does the whole opening (48 points) and the rounds; Budi ticks two things.
+    // Rifky does the whole opening (71 points) and the rounds; Budi ticks two things.
     const rows = [
       ...keys.slice(2).map((k) => tick(day, k, "rifky", "07:20")),
       ...keys.slice(0, 2).map((k) => tick(day, k, "budi", "07:10")),
@@ -111,12 +111,12 @@ describe("summarize", () => {
     ];
     const s = summarize(rows, opts);
     const shift = s.shifts[0];
-    expect(shift.possible).toBe(93);
+    expect(shift.possible).toBe(116);
     expect(shift.passed).toBe(true);
-    // 93 / 2 people = 46.5, 80% of that = 37.
+    // 116 / 2 people = 58, 80% of that = 46.
     expect(shift.own).toEqual([
-      { name: "rifky", points: 91, target: 37, passed: true },
-      { name: "budi", points: 2, target: 37, passed: false },
+      { name: "rifky", points: 114, target: 46, passed: true },
+      { name: "budi", points: 2, target: 46, passed: false },
     ]);
     expect(s.staff.find((x) => x.name === "budi")).toMatchObject({ shiftsPassed: 1, ownPassed: 0 });
   });
@@ -128,7 +128,7 @@ describe("summarize", () => {
     const rounds = [10, 12].flatMap((h) => round(d, h, "rifky", `${h}:10`));
     const s = summarize([...all, ...rounds], { from: d, to: d, today: "2026-11-20", hourNow: 0 });
     expect(s.shifts[0]).toMatchObject({ morning: true, passed: true, missedRounds: [] });
-    expect(s.shifts[0].possible).toBe(48 + 2 * 9);
+    expect(s.shifts[0].possible).toBe(71 + 2 * 9);
     expect(s.roundsJudged).toBe(5);
     expect(s.missed.map((r) => r.hour)).toEqual([14, 17, 20]);
   });
