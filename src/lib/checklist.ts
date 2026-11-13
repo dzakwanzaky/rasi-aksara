@@ -55,7 +55,7 @@ const prepKitchen = (time?: string): CheckItem[] => [
   { key: "prep-ayam-bakar", points: 3, time, since: PREP_FROM, text: "Ayam bakar" },
   { key: "prep-platter", points: 2, time, since: PREP_FROM, text: "Platter" },
   { key: "prep-sambal", points: 3, time, since: PREP_FROM, text: "Sambal terasi" },
-  { key: "prep-kwetiau", points: 2, time, since: PREP_FROM, text: "Mendadarkan kwetiau" },
+  { key: "prep-kwetiau", points: 2, time, since: PREP_FROM, text: "Prepare kwetiau" },
   { key: "prep-geprek", points: 2, time, since: PREP_FROM, text: "Marinasi ayam geprek" },
   { key: "prep-ayam-kwetiau", points: 2, time, since: PREP_FROM, text: "Ayam kwetiau" },
 ];
