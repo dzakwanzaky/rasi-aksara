@@ -5,7 +5,7 @@ import { createContext, useContext, useEffect, useMemo, useRef, useState } from 
 import { Camera } from "./Camera";
 import { createClient } from "@/lib/supabase/client";
 import {
-  HOURS, SHEETS, hourlyKey, itemKey, itemNoteKey, noteKey, readAmount, rupiah, tickKeys,
+  SHEETS, hoursFor, hourlyKey, itemKey, itemNoteKey, noteKey, readAmount, rupiah, tickKeys,
   type CheckItem, type Entry, type Section, type Sheet, type SheetId,
 } from "@/lib/checklist";
 
@@ -176,7 +176,7 @@ export function ChecklistFlow(props: {
   }
 
   const progress = (s: Sheet) => {
-    const keys = tickKeys(s, hourNow);
+    const keys = tickKeys(s, hourNow, date);
     return { done: keys.filter((k) => entries[k]?.done).length, total: keys.length };
   };
   const p = progress(sheet);
@@ -236,7 +236,7 @@ export function ChecklistFlow(props: {
               ))}
             </ul>
           ) : s.kind === "hourly" ? (
-            <Hourly section={s} entries={entries} hourNow={hourNow} tick={tick} readOnly={readOnly} />
+            <Hourly section={s} entries={entries} hourNow={hourNow} date={date} tick={tick} readOnly={readOnly} />
           ) : (
             <ul className="ck-list">
               {s.items.map((i) => (
@@ -375,11 +375,12 @@ function Item({ sheet, item, tick, field, readOnly, children }: {
   );
 }
 
-function Hourly({ section, entries, hourNow, tick, readOnly }: {
-  section: Section; entries: Entries; hourNow: number; tick: (keys: string[], done: boolean) => void; readOnly: boolean;
+function Hourly({ section, entries, hourNow, date, tick, readOnly }: {
+  section: Section; entries: Entries; hourNow: number; date: string; tick: (keys: string[], done: boolean) => void; readOnly: boolean;
 }) {
-  const hours = HOURS.filter((h) => h <= hourNow);
-  if (!hours.length) return <p className="muted">Hourly check mulai jam {String(HOURS[0]).padStart(2, "0")}.00.</p>;
+  const all = hoursFor(date);
+  const hours = all.filter((h) => h <= hourNow);
+  if (!hours.length) return <p className="muted">Hourly check mulai jam {String(all[0]).padStart(2, "0")}.00.</p>;
   return (
     <ul className="ck-hours">
       {[...hours].reverse().map((h) => {
