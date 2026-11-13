@@ -15,12 +15,14 @@
     "fflate": "0.8.2",
     "next": "15.5.26",
     "react": "19.1.9",
-    "react-dom": "19.1.9"
+    "react-dom": "19.1.9",
+    "web-push": "3.6.7"
   },
   "devDependencies": {
     "@types/node": "22.20.5",
     "@types/react": "19.1.17",
     "@types/react-dom": "19.1.9",
+    "@types/web-push": "3.6.4",
     "typescript": "5.8.3",
     "vitest": "3.2.7"
   }
