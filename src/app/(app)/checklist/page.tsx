@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { todayJakarta } from "@/lib/data";
 import { dateLabel } from "@/lib/types";
 import { accountLabel } from "@/lib/staff";
-import { SHEETS, noteKey, sheetForTime, type Entry, type SheetId } from "@/lib/checklist";
+import { SHEETS, sheetForTime, type Entry, type SheetId } from "@/lib/checklist";
 import { ChecklistFlow, type Photo } from "./ChecklistFlow";
 import { DatePick } from "./DatePick";
 
@@ -31,12 +31,8 @@ export default async function Checklist({ searchParams }: { searchParams: Promis
     : isToday ? sheetForTime(now.hour, now.minute) : "opening";
 
   const supabase = await createClient();
-  const [{ data: rows, error }, { data: prev }, { data: { session } }] = await Promise.all([
+  const [{ data: rows, error }, { data: { session } }] = await Promise.all([
     supabase.from("checklist_entries").select("key, done, done_by, done_at, value").eq("check_date", date),
-    // The last closing note before this day, for the opening shift to read.
-    supabase.from("checklist_entries").select("check_date, value")
-      .eq("key", noteKey("closing")).lt("check_date", date).neq("value", "")
-      .order("check_date", { ascending: false }).limit(1).maybeSingle(),
     supabase.auth.getSession(),
   ]);
 
@@ -93,7 +89,6 @@ export default async function Checklist({ searchParams }: { searchParams: Promis
         initialEntries={entries}
         initialPhotos={photos}
         readOnly={!isToday}
-        prevClosing={prev ? { dateText: dateLabel(prev.check_date as string), text: prev.value as string } : null}
       />
     </>
   );

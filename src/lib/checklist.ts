@@ -89,22 +89,9 @@ export const SHEETS: Sheet[] = [
         ],
       },
       {
-        title: "Stock opname",
-        items: [
-          { key: "hitung", points: 3, time: "07.30", text: "Hitung fisik semua bahan baku (bar & kitchen)", link: { href: "/hitung", label: "Buka Hitung" } },
-          { key: "banding", points: 2, time: "07.30", text: "Bandingkan dengan data di aplikasi" },
-          { key: "selisih", points: 2, time: "07.30", text: "Catat selisih + keterangan (kalau ada)" },
-          { key: "restock", points: 2, time: "07.30", text: "Identifikasi bahan yang perlu restock", link: { href: "/belanja", label: "Buka Belanja" } },
-          { key: "lapor-wa", time: "07.30", text: "Laporkan ke grup WA kalau ada yang kritis" },
-        ],
-      },
-      {
         title: "Buka",
         items: [
           { key: "token", time: "07.50", text: "Cek token listrik, catat sisa token", input: TOKEN },
-          { key: "buka", time: "08.00", text: "Buka pintu, pasang tanda BUKA" },
-          { key: "foto", time: "08.00", text: "Foto bar + kasir, kirim ke grup (dokumentasi opening)" },
-          { key: "baca-closing", time: "08.00", text: "Baca catatan closing shift malam sebelumnya" },
         ],
       },
     ],
@@ -190,7 +177,7 @@ export const SHEETS: Sheet[] = [
     id: "closing",
     title: "Closing",
     hours: "21.30 – 22.30",
-    noteLabel: "Catatan closing (untuk opening besok)",
+    noteLabel: "Catatan closing",
     sections: [
       {
         title: "Persiapan closing",
@@ -244,8 +231,6 @@ export const SHEETS: Sheet[] = [
         title: "Stock opname",
         items: [
           { key: "hitung", points: 3, time: "22.00", text: "Hitung fisik semua stok bar & kitchen", link: { href: "/hitung", label: "Buka Hitung" } },
-          { key: "banding", points: 2, time: "22.00", text: "Bandingkan dengan data di aplikasi" },
-          { key: "selisih", points: 2, time: "22.00", text: "Catat selisih di form stock opname" },
           { key: "beli", points: 2, time: "22.00", text: "Tandai bahan yang perlu dibeli besok", link: { href: "/belanja", label: "Buka Belanja" } },
           { key: "lapor-wa", time: "22.00", text: "Laporkan ke grup WA kalau ada yang kritis" },
         ],
@@ -263,12 +248,10 @@ export const SHEETS: Sheet[] = [
       {
         title: "Final check",
         items: [
-          { key: "gform", points: 2, time: "22.15", text: "Isi shift report via Google Form, submit" },
-          { key: "lampu", time: "22.15", text: "Matikan semua lampu kecuali lampu keamanan" },
+          { key: "gform", points: 2, time: "22.15", text: "Isi laporan shift di sistem (tab Laporan), simpan", link: { href: "/laporan", label: "Buka Laporan" } },
+          { key: "lampu", time: "22.15", text: "Matikan semua lampu kecuali lampu teras" },
           { key: "kunci", time: "22.15", text: "Cek semua pintu dan jendela terkunci" },
-          { key: "cctv", time: "22.15", text: "Pastikan CCTV aktif" },
           { key: "token", time: "22.15", text: "Cek token listrik, catat sisa token", input: TOKEN },
-          { key: "foto", time: "22.15", text: "Foto kondisi bar + kasir, kirim ke grup (dokumentasi closing)" },
         ],
       },
     ],
