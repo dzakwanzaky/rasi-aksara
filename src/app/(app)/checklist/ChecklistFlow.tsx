@@ -28,7 +28,6 @@ const clock = (iso: string | null | undefined) =>
 export function ChecklistFlow(props: {
   date: string; initialSheet: SheetId; hourNow: number; me: string; initialEntries: Entries; readOnly: boolean;
   initialPhotos: Photos;
-  prevClosing: { dateText: string; text: string } | null;
 }) {
   const { date, hourNow, me, readOnly } = props;
   const supabase = useMemo(() => createClient(), []);
@@ -241,16 +240,6 @@ export function ChecklistFlow(props: {
             <ul className="ck-list">
               {s.items.map((i) => (
                 <Item key={i.key} sheet={sheet} item={i} tick={tick} field={field} readOnly={readOnly}>
-                  {sheet.id === "opening" && i.key === "baca-closing" && (
-                    <div className="note ck-note">
-                      {props.prevClosing ? (
-                        <>
-                          <b>Catatan closing {props.prevClosing.dateText}:</b>
-                          <p className="pre">{props.prevClosing.text}</p>
-                        </>
-                      ) : "Belum ada catatan closing sebelumnya."}
-                    </div>
-                  )}
                   {sheet.id === "handover" && i.key === "token" && entries[itemKey("opening", "token")]?.value && (
                     <p className="calc">Token saat opening: <b>{entries[itemKey("opening", "token")]?.value} kWh</b></p>
                   )}
