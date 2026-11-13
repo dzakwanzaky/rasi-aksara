@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { HOURS, SHEETS, hourlyKey, tickKeys } from "./checklist";
+import { HOURLY_HOURS as HOURS, SHEETS, hourlyKey, tickKeys } from "./checklist";
 import { itemInfo, minutesInto, periodRange, summarize, type Row } from "./performa";
 
 const at = (date: string, time: string) => new Date(`${date}T${time}:00+07:00`).toISOString();
@@ -119,5 +119,17 @@ describe("summarize", () => {
       { name: "budi", points: 2, target: 42, passed: false },
     ]);
     expect(s.staff.find((x) => x.name === "budi")).toMatchObject({ shiftsPassed: 1, ownPassed: 0 });
+  });
+
+  it("judges only the 5 quiet-hour rounds from 14 Nov 2026", () => {
+    const d = "2026-11-14";
+    const opening = SHEETS.find((x) => x.id === "opening")!;
+    const all = tickKeys(opening).map((k) => tick(d, k, "rifky", "07:20"));
+    const rounds = [10, 12].flatMap((h) => round(d, h, "rifky", `${h}:10`));
+    const s = summarize([...all, ...rounds], { from: d, to: d, today: "2026-11-20", hourNow: 0 });
+    expect(s.shifts[0]).toMatchObject({ morning: true, passed: true, missedRounds: [] });
+    expect(s.shifts[0].possible).toBe(61 + 2 * 9);
+    expect(s.roundsJudged).toBe(5);
+    expect(s.missed.map((r) => r.hour)).toEqual([14, 17, 20]);
   });
 });

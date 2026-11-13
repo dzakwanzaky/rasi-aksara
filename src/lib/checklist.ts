@@ -15,7 +15,7 @@ export type CheckItem = {
 export type Section = {
   title: string;
   hint?: string;
-  /** check: tick once. reminder: habits for the whole shift, nothing to tick. hourly: one round every 2 hours (every hour before 14 Nov 2026). */
+  /** check: tick once. reminder: habits for the whole shift, nothing to tick. hourly: a round at each of HOURS. */
   kind?: "check" | "reminder" | "hourly";
   items: CheckItem[];
 };
@@ -117,7 +117,7 @@ export const SHEETS: Sheet[] = [
     sections: [
       {
         title: "Hourly check",
-        hint: "Wajib tiap 2 jam (10.00, 12.00, 14.00, 16.00, 18.00, 20.00), bergantian bar & kitchen.",
+        hint: "5 ronde: 10.00, 12.00, 14.00, 17.00, 20.00 (jam sepi). Selesaikan dalam jam itu, bergantian bar & kitchen.",
         kind: "hourly",
         items: [
           { key: "lantai-in", points: 2, text: "Lantai indoor bersih" },
@@ -277,14 +277,12 @@ export const SHEETS: Sheet[] = [
 
 /** Until 13 Nov 2026 there was a round every hour, 09–21. */
 export const HOURLY_HOURS = [9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21];
-/** From this day the round is every 2 hours (Zaky, 13 Nov 2026). */
-export const TWO_HOURLY_FROM = "2026-11-14";
-/** The current rounds: one every 2 hours, each covering its hour and the next. */
-export const HOURS = [10, 12, 14, 16, 18, 20];
+/** From this day there are only 5 rounds, at the quietest hours in Majoo's sales (Zaky, 13 Nov 2026). */
+export const ROUNDS_FROM = "2026-11-14";
+/** The current rounds. Each is done within its hour, e.g. 12.00–13.00. */
+export const HOURS = [10, 12, 14, 17, 20];
 /** The rounds of a given day (older days keep their hourly rounds, so history stays as it was). */
-export const hoursFor = (date?: string) => (date && date < TWO_HOURLY_FROM ? HOURLY_HOURS : HOURS);
-/** How many hours one round covers on a given day. */
-export const roundSpan = (date?: string) => (date && date < TWO_HOURLY_FROM ? 1 : 2);
+export const hoursFor = (date?: string) => (date && date < ROUNDS_FROM ? HOURLY_HOURS : HOURS);
 
 export const itemKey = (sheet: SheetId, item: string) => `${sheet}:${item}`;
 export const hourlyKey = (hour: number, item: string) => `operasional:jam${String(hour).padStart(2, "0")}:${item}`;

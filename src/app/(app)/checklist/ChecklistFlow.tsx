@@ -5,7 +5,7 @@ import { createContext, useContext, useEffect, useMemo, useRef, useState } from 
 import { Camera } from "./Camera";
 import { createClient } from "@/lib/supabase/client";
 import {
-  SHEETS, hoursFor, roundSpan, hourlyKey, itemKey, itemNoteKey, noteKey, readAmount, rupiah, tickKeys,
+  SHEETS, hoursFor, hourlyKey, itemKey, itemNoteKey, noteKey, readAmount, rupiah, tickKeys,
   type CheckItem, type Entry, type Section, type Sheet, type SheetId,
 } from "@/lib/checklist";
 
@@ -379,7 +379,6 @@ function Hourly({ section, entries, hourNow, date, tick, readOnly }: {
   section: Section; entries: Entries; hourNow: number; date: string; tick: (keys: string[], done: boolean) => void; readOnly: boolean;
 }) {
   const all = hoursFor(date);
-  const span = roundSpan(date);
   const hours = all.filter((h) => h <= hourNow);
   if (!hours.length) return <p className="muted">Hourly check mulai jam {String(all[0]).padStart(2, "0")}.00.</p>;
   return (
@@ -388,7 +387,7 @@ function Hourly({ section, entries, hourNow, date, tick, readOnly }: {
         const keys = section.items.map((i) => hourlyKey(h, i.key));
         const done = keys.filter((k) => entries[k]?.done);
         const by = [...new Set(done.map((k) => entries[k]?.done_by).filter(Boolean))].join(", ");
-        const current = hourNow >= h && hourNow < h + span;
+        const current = h === hourNow;
         const missed = !current && done.length === 0 && hourNow < 24;
         return (
           <li key={h}>

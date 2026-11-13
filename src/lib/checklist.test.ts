@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { HOURS, SHEETS, readAmount, sheetForTime, tickKeys } from "./checklist";
+import { HOURS, SHEETS, hoursFor, readAmount, sheetForTime, tickKeys } from "./checklist";
 
 describe("readAmount", () => {
   it("reads rupiah with thousand dots", () => {
@@ -34,7 +34,15 @@ describe("checklist keys", () => {
   });
   it("count hourly rounds only up to the current hour", () => {
     const op = SHEETS.find((s) => s.id === "operasional")!;
-    expect(tickKeys(op, 10)).toHaveLength(2 * 6);
+    expect(tickKeys(op, 10)).toHaveLength(1 * 6);
+    expect(tickKeys(op, 16)).toHaveLength(3 * 6);
     expect(tickKeys(op)).toHaveLength(HOURS.length * 6);
+  });
+  it("use 5 rounds at quiet hours from 14 Nov 2026, every hour before", () => {
+    const op = SHEETS.find((s) => s.id === "operasional")!;
+    expect(hoursFor("2026-11-14")).toEqual([10, 12, 14, 17, 20]);
+    expect(hoursFor("2026-11-13")).toHaveLength(13);
+    expect(tickKeys(op, 24, "2026-11-13")).toHaveLength(13 * 6);
+    expect(tickKeys(op, 24, "2026-11-14")).toHaveLength(5 * 6);
   });
 });

@@ -1,7 +1,7 @@
 // Checklist performance per staff for the owner's dashboard (/performa, Zaky 18 Okt 2026).
 // Everything is worked out from checklist_entries: who ticked (done_by) and when (done_at).
 
-import { HOURLY_HOURS, SHEETS, hourlyKey, hoursFor, itemKey, roundSpan, tickKeys, type SheetId } from "./checklist";
+import { HOURLY_HOURS, SHEETS, hourlyKey, hoursFor, itemKey, tickKeys, type SheetId } from "./checklist";
 
 export type Period = "hari" | "minggu" | "bulan";
 export const PERIODS: { id: Period; label: string }[] = [
@@ -63,7 +63,7 @@ for (const sheet of SHEETS) {
     if (s.kind === "reminder") continue;
     for (const i of s.items) {
       if (s.kind === "hourly") {
-        // Every hour that ever had a round; a 2-hour round's due time is moved in itemInfo.
+        // Every hour that ever had a round (before 14 Nov 2026 every hour 09–21).
         for (const h of HOURLY_HOURS) {
           INFO.set(hourlyKey(h, i.key), { label: `Hourly ${String(h).padStart(2, "0")}.00 · ${i.text}`, due: (h + 1) * 60, hour: h, points: i.points ?? 1 });
         }
@@ -75,15 +75,8 @@ for (const sheet of SHEETS) {
     }
   }
 }
-/**
- * What a checklist key is called and when it is due on `date`; undefined for notes and keys no longer on the list.
- * A round is due at the end of its hour, or of the next hour once rounds are every 2 hours.
- */
-export const itemInfo = (key: string, date?: string): ItemInfo | undefined => {
-  const info = INFO.get(key);
-  if (!info || info.hour == null) return info;
-  return { ...info, due: (info.hour + roundSpan(date)) * 60 };
-};
+/** What a checklist key is called and when it is due; undefined for notes and keys no longer on the list. */
+export const itemInfo = (key: string) => INFO.get(key);
 /** Tickable once-a-day items (not hourly), for counting what nobody ticked. */
 const DAILY_KEYS = [...INFO.entries()].filter(([, v]) => v.hour == null).map(([k]) => k);
 
@@ -181,14 +174,14 @@ export function summarize(rows: Row[], opts: { from: string; to: string; today: 
   const sum: Summary = { ticks: 0, late: 0, roundsJudged: 0, roundsFull: 0, partial: [], missed: [], skipped: 0, activeDays: [], staff: [], shifts: [] };
   for (const date of datesBetween(opts.from, opts.to)) {
     const day = byDate.get(date);
-    const done = [...(day?.values() ?? [])].filter((r) => r.done && r.done_at && itemInfo(r.key, date));
+    const done = [...(day?.values() ?? [])].filter((r) => r.done && r.done_at && itemInfo(r.key));
     if (!done.length) continue;
     sum.activeDays.push(date);
 
     // Ticks, and each person's first and last tick of the day.
     const span = new Map<string, { first: number; last: number }>();
     for (const r of done) {
-      const info = itemInfo(r.key, date)!;
+      const info = itemInfo(r.key)!;
       const at = minutesInto(date, r.done_at!);
       const name = r.done_by || "?";
       const s = stat(name);
@@ -205,10 +198,9 @@ export function summarize(rows: Row[], opts: { from: string; to: string; today: 
     }
     // Guessing who was on shift: a first tick before noon means the morning shift (rounds up to 14.00),
     // a tick from 15.00 the evening shift (rounds from 14.00), plus anyone ticking during the round.
-    const len = roundSpan(date);
     const onDuty = (hour: number) =>
       [...span.entries()].filter(([, { first, last }]) =>
-        (first <= (hour + len) * 60 && last >= hour * 60)
+        (first <= (hour + 1) * 60 && last >= hour * 60)
         || (first < 12 * 60 && hour <= 14)
         || (last >= 15 * 60 && hour >= 14),
       ).map(([name]) => name);
@@ -229,7 +221,7 @@ export function summarize(rows: Row[], opts: { from: string; to: string; today: 
       crew.set(morning, members);
       const inShift = done.filter((r) => !r.key.startsWith("handover:") && half(r) === morning && members.includes(r.done_by || "?"));
       if (!inShift.length || !members.length) continue;
-      const pts = (list: Row[]) => list.reduce((n, r) => n + itemInfo(r.key, date)!.points, 0);
+      const pts = (list: Row[]) => list.reduce((n, r) => n + itemInfo(r.key)!.points, 0);
       const total = pts(inShift);
       for (const name of members) {
         const sh = stat(name).share;
@@ -246,7 +238,7 @@ export function summarize(rows: Row[], opts: { from: string; to: string; today: 
       const keys = roundItems.map((i) => hourlyKey(hour, i.key));
       const by = new Set(keys.map((k) => day?.get(k)).filter((r) => r?.done).map((r) => r!.done_by || "?"));
       for (const name of by) stat(name).rounds++;
-      if (isToday && hour + len > opts.hourNow) continue;
+      if (isToday && hour >= opts.hourNow) continue;
       sum.roundsJudged++;
       const n = keys.filter((k) => day?.get(k)?.done).length;
       if (n === keys.length) { sum.roundsFull++; continue; }
@@ -264,7 +256,7 @@ export function summarize(rows: Row[], opts: { from: string; to: string; today: 
       const doneKeys = keys.filter((k) => day?.get(k)?.done);
       if (!people.length && !doneKeys.length) continue;
       const over = date < opts.today || opts.hourNow >= (morning ? 15 : 23);
-      const rounds = hoursFor(date).filter((h) => (morning ? h < 14 : h >= 14) && (!isToday || h + len <= opts.hourNow));
+      const rounds = hoursFor(date).filter((h) => (morning ? h < 14 : h >= 14) && (!isToday || h < opts.hourNow));
       const missedRounds = rounds.filter((h) => !roundKeys([h]).some((k) => day?.get(k)?.done));
       const open = keys.filter((k) => !day?.get(k)?.done && itemInfo(k)?.hour == null).map((k) => itemInfo(k)!.label);
       const passed = over ? doneKeys.length === keys.length : null;
