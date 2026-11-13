@@ -44,8 +44,8 @@ const RP = { label: "Jumlah", prefix: "Rp", numeric: true };
  */
 export const PREP_FROM = "2026-11-14";
 const prepBar = (time?: string): CheckItem[] => [
-  { key: "prep-espresso", points: 2, time, since: PREP_FROM, text: "Espresso: siapkan 1 carafe" },
-  { key: "prep-susu", points: 2, time, since: PREP_FROM, text: "Mix milk: 4 carafe penuh" },
+  { key: "prep-espresso", points: 2, time, since: PREP_FROM, text: "Espresso: siapkan 1 ceret" },
+  { key: "prep-susu", points: 2, time, since: PREP_FROM, text: "Mix milk: 4 ceret penuh" },
   { key: "prep-sirup", points: 2, time, since: PREP_FROM, text: "Semua sirup: buat kalau sudah kritis" },
   { key: "prep-milktea", time, since: PREP_FROM, text: "Powder milk tea" },
   { key: "prep-maxxtea", time, since: PREP_FROM, text: "Powder Maxxtea" },
