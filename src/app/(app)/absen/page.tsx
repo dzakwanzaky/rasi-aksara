@@ -5,6 +5,8 @@ import { dateLabel } from "@/lib/types";
 import { isAdmin } from "@/lib/admin";
 import { SHIFTS, clock, durationLabel, minutesWorked, shiftForHour, type AttendanceRow } from "@/lib/absen";
 import { AbsenFlow } from "./AbsenFlow";
+import { accountLabel } from "@/lib/staff";
+import { jadwalInfo } from "@/lib/jadwal";
 
 const hourJakarta = () =>
   Number(new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Jakarta", hour: "2-digit", hourCycle: "h23" }).format(new Date()));
@@ -36,6 +38,10 @@ export default async function Absen() {
   const list = (rows ?? []) as (AttendanceRow & { user_id: string })[];
   const mine = list.filter((r) => r.user_id === user?.id);
   const open = mine.find((r) => !r.clock_out) ?? null;
+  // Today's shift from the schedule (0018); if the table is not there yet, this just finds nothing.
+  const { data: sched } = await supabase.from("shift_schedule").select("shift")
+    .eq("work_date", today).eq("username", accountLabel(user?.email)).maybeSingle();
+  const planned = jadwalInfo(sched?.shift as string | undefined);
 
   return (
     <>
@@ -49,11 +55,18 @@ export default async function Absen() {
         {admin && <Link className="btn small" href="/absen/rekap">Rekap absensi</Link>}
       </div>
 
+      {planned && (
+        <p className={`panel jd-group ${planned.id}`}>
+          Jadwalmu hari ini: <b>{planned.label}</b>{planned.hours && ` · ${planned.hours}`}{" "}
+          <Link href="/jadwal" className="muted small">lihat jadwal</Link>
+        </p>
+      )}
+
       <AbsenFlow
         place={place ? { lat: place.lat as number, lng: place.lng as number, radius: place.radius_m as number } : null}
         open={open ? { shift: open.shift, clockIn: clock(open.clock_in) } : null}
         doneToday={mine.filter((r) => r.clock_out).map((r) => `${clock(r.clock_in)}–${clock(r.clock_out)}`)}
-        defaultShift={shiftForHour(hourJakarta())}
+        defaultShift={planned && planned.id !== "libur" ? planned.id : shiftForHour(hourJakarta())}
         admin={admin}
       />
 
