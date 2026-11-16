@@ -7,7 +7,13 @@ export const metadata: Metadata = {
   description: "Sistem operasional Rasi Aksara",
   // Installed on the home screen it opens full screen; iPhones need this for notifications (iOS 16.4+).
   appleWebApp: { capable: true, title: "Rasi Aksara", statusBarStyle: "default" },
-  icons: { icon: "/icons/icon-192.png", apple: "/icons/apple-touch-icon.png" },
+  icons: {
+    icon: [
+      { url: "/icons/favicon-48.png", sizes: "48x48", type: "image/png" },
+      { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
+    ],
+    apple: "/icons/apple-touch-icon.png",
+  },
 };
 export const viewport: Viewport = { width: "device-width", initialScale: 1, colorScheme: "only light", themeColor: "#f3f5f1" };
 
