@@ -8,14 +8,10 @@ import { SHIFTS, clock, durationLabel, minutesWorked, summarize, type Attendance
 import { DatePick } from "../../checklist/DatePick";
 import { deleteAttendance, fixClockOut, saveLocation } from "../actions";
 import { HereButton } from "./HereButton";
-<<<<<<< HEAD
 import { JADWAL, checkAttendance, type SchedCheck, type ScheduleRow } from "@/lib/jadwal";
 import { fullName, scheduleName, shortName } from "@/lib/names";
 import { loadNames } from "@/lib/names-server";
-=======
-import { JADWAL, checkAttendance, displayName, type SchedCheck, type ScheduleRow } from "@/lib/jadwal";
 import { SubmitButton } from "@/components/SubmitButton";
->>>>>>> origin/main
 
 const nowHHMM = () =>
   new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Jakarta", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(new Date());
