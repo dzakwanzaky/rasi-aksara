@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { startNavProgress } from "@/components/NavProgress";
 
 /** Tap to open the phone's calendar and jump straight to a day (Zaky, 14 Okt 2026). */
 export function DatePick({ date, today, path = "/checklist" }: { date: string; today: string; path?: string }) {
@@ -9,6 +10,7 @@ export function DatePick({ date, today, path = "/checklist" }: { date: string; t
     if (!d || d > today) return;
     const url = new URL(window.location.href);
     url.searchParams.set("date", d);
+    startNavProgress();
     router.push(`${path}?${url.searchParams}`);
   }
   return (

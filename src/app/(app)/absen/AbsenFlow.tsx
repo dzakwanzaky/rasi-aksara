@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { SHIFTS, distanceM, geoErrorText, shiftLabel, type Shift } from "@/lib/absen";
 import { clockOther, clockSelf, type Fix, type Result } from "./actions";
+import { Spinner } from "@/components/SubmitButton";
 
 type Place = { lat: number; lng: number; radius: number };
 
@@ -90,7 +91,7 @@ export function AbsenFlow({ place, open, doneToday, defaultShift, admin }: {
           <>
             <p className="ab-status">Sudah clock in jam <b>{open.clockIn}</b> · {shiftLabel(open.shift)}</p>
             <button className="btn primary bigbtn" disabled={!!busy} onClick={() => run("out", (fix) => clockSelf("out", shift, fix))}>
-              {busy === "out" ? "Membaca lokasi…" : "Clock out"}
+              {busy === "out" ? <><Spinner />Membaca lokasi…</> : "Clock out"}
             </button>
           </>
         ) : (
@@ -98,7 +99,7 @@ export function AbsenFlow({ place, open, doneToday, defaultShift, admin }: {
             <p className="ab-status">{doneToday.length ? `Sudah selesai hari ini: ${doneToday.join(", ")}` : "Belum clock in hari ini."}</p>
             <ShiftPick value={shift} onChange={setShift} />
             <button className="btn primary bigbtn" disabled={!!busy} onClick={() => run("in", (fix) => clockSelf("in", shift, fix))}>
-              {busy === "in" ? "Membaca lokasi…" : "Clock in"}
+              {busy === "in" ? <><Spinner />Membaca lokasi…</> : "Clock in"}
             </button>
           </>
         )}
@@ -127,11 +128,11 @@ export function AbsenFlow({ place, open, doneToday, defaultShift, admin }: {
         <div className="row" style={{ marginTop: 10 }}>
           <button className="btn primary" disabled={!!busy}
             onClick={() => run("fin", (fix) => clockOther("in", friendShift, fix, friend.username, friend.password))}>
-            {busy === "fin" ? "Membaca lokasi…" : "Clock in teman"}
+            {busy === "fin" ? <><Spinner />Membaca lokasi…</> : "Clock in teman"}
           </button>
           <button className="btn" disabled={!!busy}
             onClick={() => run("fout", (fix) => clockOther("out", friendShift, fix, friend.username, friend.password))}>
-            {busy === "fout" ? "Membaca lokasi…" : "Clock out teman"}
+            {busy === "fout" ? <><Spinner />Membaca lokasi…</> : "Clock out teman"}
           </button>
         </div>
       </details>

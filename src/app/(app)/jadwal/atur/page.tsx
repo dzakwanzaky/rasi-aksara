@@ -8,6 +8,7 @@ import { daysInMonth, displayName, monthDate, monthLabel, type ScheduleRow } fro
 import { linkName } from "../actions";
 import { UploadPreview } from "./UploadPreview";
 import { MonthGrid } from "./MonthGrid";
+import { SubmitButton } from "@/components/SubmitButton";
 
 export const dynamic = "force-dynamic";
 
@@ -73,7 +74,7 @@ export default async function AturJadwal({ searchParams }: { searchParams: Promi
                     <option value="" disabled>pilih akun…</option>
                     {accounts.map((a) => <option key={a.username} value={a.username}>{a.username}{a.name ? ` (${a.name})` : ""}</option>)}
                   </select>
-                  <button className="btn small primary">Hubungkan</button>
+                  <SubmitButton className="btn small primary">Hubungkan</SubmitButton>
                 </form>
               </li>
             ))}
@@ -96,7 +97,7 @@ export default async function AturJadwal({ searchParams }: { searchParams: Promi
                     <option value="">– tidak ada akun –</option>
                     {accounts.map((a) => <option key={a.username} value={a.username}>{a.username}{a.name ? ` (${a.name})` : ""}</option>)}
                   </select>
-                  <button className="btn small">Ganti</button>
+                  <SubmitButton className="btn small">Ganti</SubmitButton>
                 </form>
               </li>
             ))}

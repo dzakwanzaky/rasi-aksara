@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { adminConfigured, createAdminClient } from "@/lib/supabase/admin";
 import { accountLabel, USERNAME_RULE } from "@/lib/staff";
 import { addStaff, resetPassword, setActive, setAdmin } from "./actions";
+import { SubmitButton } from "@/components/SubmitButton";
 
 export const dynamic = "force-dynamic";
 
@@ -57,7 +58,7 @@ export default async function StaffPage({ searchParams }: { searchParams: Promis
           <label className="f">Nama (boleh kosong)<input name="name" autoComplete="off" placeholder="mis. Budi Santoso" /></label>
           <label className="f">Kata sandi<input name="password" required minLength={6} autoComplete="new-password" placeholder="minimal 6 karakter" /></label>
           <label className="check"><input type="checkbox" name="is_admin" /> Jadikan admin (boleh mengatur staff)</label>
-          <button className="btn primary">Buat akun</button>
+          <SubmitButton className="btn primary" pendingText="Membuat akun…">Buat akun</SubmitButton>
         </form>
       </section>
 
@@ -87,21 +88,21 @@ export default async function StaffPage({ searchParams }: { searchParams: Promis
                   <form action={resetPassword} className="row">
                     <input type="hidden" name="id" value={u.id} />
                     <input name="password" minLength={6} required placeholder="kata sandi baru" autoComplete="new-password" aria-label="Kata sandi baru" />
-                    <button className="btn small">Ganti sandi</button>
+                    <SubmitButton className="btn small">Ganti sandi</SubmitButton>
                   </form>
                   <div className="row">
                     {!me && (
                       <form action={setActive}>
                         <input type="hidden" name="id" value={u.id} />
                         <input type="hidden" name="active" value={banned ? "1" : "0"} />
-                        <button className={banned ? "btn small" : "btn small danger"}>{banned ? "Aktifkan lagi" : "Nonaktifkan"}</button>
+                        <SubmitButton className={banned ? "btn small" : "btn small danger"}>{banned ? "Aktifkan lagi" : "Nonaktifkan"}</SubmitButton>
                       </form>
                     )}
                     {!me && (
                       <form action={setAdmin}>
                         <input type="hidden" name="id" value={u.id} />
                         <input type="hidden" name="admin" value={isAdmin ? "0" : "1"} />
-                        <button className="btn small">{isAdmin ? "Cabut admin" : "Jadikan admin"}</button>
+                        <SubmitButton className="btn small">{isAdmin ? "Cabut admin" : "Jadikan admin"}</SubmitButton>
                       </form>
                     )}
                   </div>
