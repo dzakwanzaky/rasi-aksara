@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { todayJakarta } from "@/lib/data";
 import { dateLabel } from "@/lib/types";
 import { accountLabel } from "@/lib/staff";
+import { loadNames } from "@/lib/names-server";
 import { SHIFTS, shiftForTime, type Report, type ShiftId } from "@/lib/laporan";
 import { DatePick } from "../checklist/DatePick";
 import { ReportForm } from "./ReportForm";
@@ -75,6 +76,7 @@ export default async function Laporan({ searchParams }: { searchParams: Promise<
         initialShift={shift}
         initialReports={reports}
         me={accountLabel(session?.user.email)}
+        names={await loadNames(supabase)}
         // Today and yesterday stay open (shift 2 can finish after midnight); older days are history.
         readOnly={date < shiftDay(today, -1)}
       />

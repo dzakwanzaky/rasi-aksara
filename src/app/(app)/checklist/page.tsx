@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { todayJakarta } from "@/lib/data";
 import { dateLabel } from "@/lib/types";
 import { accountLabel } from "@/lib/staff";
+import { loadNames } from "@/lib/names-server";
 import { SHEETS, sheetForTime, type Entry, type SheetId } from "@/lib/checklist";
 import { ChecklistFlow, type Photo } from "./ChecklistFlow";
 import { DatePick } from "./DatePick";
@@ -61,6 +62,7 @@ export default async function Checklist({ searchParams }: { searchParams: Promis
   const signed = photoRows?.length
     ? (await supabase.storage.from("checklist-photos").createSignedUrls(photoRows.map((p) => p.path as string), 60 * 60 * 12)).data
     : [];
+  const names = await loadNames(supabase);
   const urlOf = new Map((signed ?? []).map((u) => [u.path, u.signedUrl]));
   const photos: Record<string, Photo[]> = {};
   for (const p of photoRows ?? []) {
@@ -90,6 +92,7 @@ export default async function Checklist({ searchParams }: { searchParams: Promis
         me={accountLabel(session?.user.email)}
         initialEntries={entries}
         initialPhotos={photos}
+        names={names}
         readOnly={!isToday}
       />
     </>

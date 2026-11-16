@@ -5,6 +5,8 @@ import { todayJakarta } from "@/lib/data";
 import { dateLabel } from "@/lib/types";
 import { COUNT_FROM, LATE_AFTER_MIN, OWN_SHARE, PERIODS, hhmm, pct, periodRange, summarize, type Period, type Row, type StaffStat } from "@/lib/performa";
 import { PhotoGrid, type ShownPhoto } from "./PhotoGrid";
+import { fullName, shortName, type NameBook } from "@/lib/names";
+import { loadNames } from "@/lib/names-server";
 
 export const dynamic = "force-dynamic";
 
@@ -68,6 +70,7 @@ export default async function Performa({ searchParams }: { searchParams: Promise
     if (!data || data.length < 1000) break;
   }
   const sum = summarize(rows, { from, to: range.to, today, hourNow: anchor <= today ? hourNowJakarta() : 0 });
+  const book = await loadNames(supabase);
   const person = q.staf ? sum.staff.find((s) => s.name === q.staf) : undefined;
 
   return (
@@ -90,13 +93,13 @@ export default async function Performa({ searchParams }: { searchParams: Promise
 
       {from > range.from && <p className="muted small">Dihitung mulai {dateLabel(COUNT_FROM)}.</p>}
       {q.staf
-        ? <StaffDetail stat={person} name={q.staf} day={q.tgl} href={href} />
-        : <Overview sum={sum} href={href} />}
+        ? <StaffDetail stat={person} name={q.staf} day={q.tgl} href={href} book={book} />
+        : <Overview sum={sum} href={href} book={book} />}
     </>
   );
 }
 
-function Overview({ sum, href }: { sum: ReturnType<typeof summarize>; href: (o: Params) => string }) {
+function Overview({ sum, href, book }: { sum: ReturnType<typeof summarize>; href: (o: Params) => string; book: NameBook }) {
   if (!sum.activeDays.length) return <p className="empty">Belum ada centangan checklist di periode ini.</p>;
   const missedPct = pct(sum.missed.length, sum.roundsJudged);
   const judged = sum.shifts.filter((x) => x.passed != null);
@@ -130,7 +133,7 @@ function Overview({ sum, href }: { sum: ReturnType<typeof summarize>; href: (o: 
             <span className="perf-round-pills">
               {x.own.map((o) => (
                 <span key={o.name} className={`pill${o.passed === false ? " bad" : o.passed ? "" : " warn"}`}>
-                  {o.name} {o.points}/{o.target}{o.passed ? " ✓" : o.passed === false ? " ✗" : ""}
+                  {shortName(book, o.name)} {o.points}/{o.target}{o.passed ? " ✓" : o.passed === false ? " ✗" : ""}
                 </span>
               ))}
             </span>
@@ -151,10 +154,10 @@ function Overview({ sum, href }: { sum: ReturnType<typeof summarize>; href: (o: 
           <li key={s.name}>
             <Link className="perf-card" href={href({ staf: s.name, tgl: undefined })}>
               <div className="card-head">
-                <b className="perf-name">{s.name}</b>
+                <b className="perf-name">{fullName(book, s.name)}</b>
                 <span className="muted small">{s.days.length} hari aktif</span>
               </div>
-              <StaffNumbers s={s} />
+              <StaffNumbers s={s} book={book} />
               <span className="linkbtn">Lihat detail &amp; foto →</span>
             </Link>
           </li>
@@ -173,7 +176,7 @@ function Overview({ sum, href }: { sum: ReturnType<typeof summarize>; href: (o: 
                   <Link href={`/checklist?date=${d}&lembar=operasional`}>{short(d)}</Link>
                   <span className="perf-round-pills">
                     {bad.map((r) => (
-                      <span key={r.hour} className={`pill ${r.done === 0 ? "bad" : "warn"}`} title={r.onDuty.join(", ")}>
+                      <span key={r.hour} className={`pill ${r.done === 0 ? "bad" : "warn"}`} title={r.onDuty.map((u) => shortName(book, u)).join(", ")}>
                         {hour2(r.hour)}{r.done > 0 && ` · ${r.done}/${r.total}`}
                       </span>
                     ))}
@@ -202,7 +205,7 @@ function Overview({ sum, href }: { sum: ReturnType<typeof summarize>; href: (o: 
   );
 }
 
-function StaffNumbers({ s }: { s: StaffStat }) {
+function StaffNumbers({ s, book }: { s: StaffStat; book: NameBook }) {
   return (
     <div className="perf-nums">
       <span><b>{s.ticks}</b> dicentang · {s.points} poin</span>
@@ -211,19 +214,19 @@ function StaffNumbers({ s }: { s: StaffStat }) {
       <span><b>{s.rounds}</b> ronde hourly</span>
       <span className={s.shiftsPassed < s.shiftsJudged ? "bad" : ""}><b>{s.shiftsPassed}/{s.shiftsJudged}</b> shift lulus target</span>
       <span className={s.ownPassed < s.shiftsJudged ? "bad" : ""}><b>{s.ownPassed}/{s.shiftsJudged}</b> target pribadi</span>
-      <Share s={s} />
+      <Share s={s} book={book} />
     </div>
   );
 }
 
 /** How much of the shared checklist this person did compared with an even split among the people on their shift. */
-function Share({ s }: { s: StaffStat }) {
+function Share({ s, book }: { s: StaffStat; book: NameBook }) {
   const { own, total, fair, peers } = s.share;
   if (!peers.length || !total) return null;
   const low = own < fair * 0.6;
   return (
     <span className={`perf-share${low ? " warn" : ""}`}>
-      <b>{pct(own, total)}%</b> poin shift dikerjakan dia · bagi rata {pct(fair, total)}% (bareng {peers.join(", ")})
+      <b>{pct(own, total)}%</b> poin shift dikerjakan dia · bagi rata {pct(fair, total)}% (bareng {peers.map((p) => shortName(book, p)).join(", ")})
       {low && ". Lebih banyak dikerjakan rekannya."}
     </span>
   );
@@ -238,7 +241,10 @@ function Tile({ n, of, label, warn }: { n: number | string; of?: number; label: 
   );
 }
 
-async function StaffDetail({ stat, name, day, href }: { stat?: StaffStat; name: string; day?: string; href: (o: Params) => string }) {
+async function StaffDetail({ stat, name: username, day, href, book }: {
+  stat?: StaffStat; name: string; day?: string; href: (o: Params) => string; book: NameBook;
+}) {
+  const name = fullName(book, username);
   const back = <Link className="back" href={href({ staf: undefined, tgl: undefined })}>‹ Semua staff</Link>;
   if (!stat) return <>{back}<p className="empty">{name} tidak mencentang apa pun di periode ini.</p></>;
   const days = stat.days;
@@ -256,7 +262,7 @@ async function StaffDetail({ stat, name, day, href }: { stat?: StaffStat; name: 
     const url = new Map(signed.map((u) => [u.path, u.signedUrl]));
     for (const p of list) {
       (photos.get(p.key as string) ?? photos.set(p.key as string, []).get(p.key as string)!)
-        .push({ id: p.id as string, url: url.get(p.path as string) ?? null, by: (p.taken_by as string) ?? "?", at: p.taken_at as string });
+        .push({ id: p.id as string, url: url.get(p.path as string) ?? null, by: shortName(book, p.taken_by as string | null) || "?", at: p.taken_at as string });
     }
   }
 
@@ -265,7 +271,7 @@ async function StaffDetail({ stat, name, day, href }: { stat?: StaffStat; name: 
       {back}
       <section className="panel">
         <h2 className="perf-name">{name}</h2>
-        <StaffNumbers s={stat} />
+        <StaffNumbers s={stat} book={book} />
       </section>
 
       <h3 className="perf-h">Per hari</h3>

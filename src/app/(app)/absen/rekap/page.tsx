@@ -8,7 +8,9 @@ import { SHIFTS, clock, durationLabel, minutesWorked, summarize, type Attendance
 import { DatePick } from "../../checklist/DatePick";
 import { deleteAttendance, fixClockOut, saveLocation } from "../actions";
 import { HereButton } from "./HereButton";
-import { JADWAL, checkAttendance, displayName, type SchedCheck, type ScheduleRow } from "@/lib/jadwal";
+import { JADWAL, checkAttendance, type SchedCheck, type ScheduleRow } from "@/lib/jadwal";
+import { fullName, scheduleName, shortName } from "@/lib/names";
+import { loadNames } from "@/lib/names-server";
 import { SubmitButton } from "@/components/SubmitButton";
 
 const nowHHMM = () =>
@@ -54,6 +56,7 @@ export default async function Rekap({ searchParams }: { searchParams: Promise<{ 
   ]);
   // Who the schedule (0018) says works this day; nothing if the table is not there yet.
   const { data: schedRows } = await supabase.from("shift_schedule").select("work_date, name, username, shift").eq("work_date", date);
+  const book = await loadNames(supabase);
 
   if (error) {
     return (
@@ -69,7 +72,7 @@ export default async function Rekap({ searchParams }: { searchParams: Promise<{ 
   const month = summarize((monthRows ?? []) as AttendanceRow[], today);
   const next = shiftDay(date, 1);
   const checks = checkAttendance((schedRows ?? []) as ScheduleRow[], rows, date, today, nowHHMM())
-    .sort((a, b) => a.name.localeCompare(b.name));
+    .sort((a, b) => scheduleName(book, a).localeCompare(scheduleName(book, b)));
 
   return (
     <>
@@ -98,7 +101,7 @@ export default async function Rekap({ searchParams }: { searchParams: Promise<{ 
                 <b>{j.label}</b>{j.hours && <span className="muted small"> · {j.hours}</span>}
                 <ul className="ab-sched">
                   {list.filter((c) => j.id !== "libur" || c.status === "off-but-in").map((c) => (
-                    <li key={c.name}>{displayName(c.name)} <SchedStatus c={c} /></li>
+                    <li key={c.name}>{scheduleName(book, c)} <SchedStatus c={c} /></li>
                   ))}
                 </ul>
               </div>
@@ -119,7 +122,7 @@ export default async function Rekap({ searchParams }: { searchParams: Promise<{ 
               {inShift.map((r) => (
                 <li key={r.id} className="panel">
                   <div className="card-head">
-                    <b>{r.username}</b>
+                    <b>{fullName(book, r.username)}</b>
                     <span className="mono">{durationLabel(minutesWorked(r))}</span>
                   </div>
                   <p className="ab-times">
@@ -163,7 +166,7 @@ export default async function Rekap({ searchParams }: { searchParams: Promise<{ 
               <tbody>
                 {month.map((m) => (
                   <tr key={m.username}>
-                    <td>{m.username}</td>
+                    <td>{fullName(book, m.username)}</td>
                     <td className="n">{m.days}</td>
                     <td className="n">{durationLabel(m.minutes)}</td>
                     <td className="n">{m.open || ""}</td>
@@ -184,7 +187,7 @@ export default async function Rekap({ searchParams }: { searchParams: Promise<{ 
               {Number(place.lat).toFixed(6)}, {Number(place.lng).toFixed(6)}
             </a>{" "}
             · radius <b>{place.radius_m} m</b>
-            {place.updated_by_name && <span className="muted small"> · diatur {place.updated_by_name}</span>}
+            {place.updated_by_name && <span className="muted small"> · diatur {shortName(book, place.updated_by_name)}</span>}
           </p>
         ) : <p className="error">Belum diatur. Staff belum bisa clock in.</p>}
         <form action={saveLocation} className="formgrid" style={{ marginTop: 10 }}>

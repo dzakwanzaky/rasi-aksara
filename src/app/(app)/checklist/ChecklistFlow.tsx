@@ -8,6 +8,7 @@ import {
   SHEETS, hoursFor, hourlyKey, itemOn, itemKey, itemNoteKey, noteKey, readAmount, rupiah, tickKeys,
   type CheckItem, type Entry, type Section, type Sheet, type SheetId,
 } from "@/lib/checklist";
+import { shortName, type NameBook } from "@/lib/names";
 
 type Entries = Record<string, Partial<Entry>>;
 
@@ -20,6 +21,9 @@ type PhotoApi = {
   shoot: (key: string, title: string) => void;
 };
 const PhotoCtx = createContext<PhotoApi | null>(null);
+/** username → nickname, so ticks and photos show "Rifky" instead of the login. */
+const NamesCtx = createContext<NameBook>({});
+const useName = () => { const book = useContext(NamesCtx); return (u: string | null | undefined) => shortName(book, u) || "?"; };
 const BUCKET = "checklist-photos";
 
 const clock = (iso: string | null | undefined) =>
@@ -27,7 +31,7 @@ const clock = (iso: string | null | undefined) =>
 
 export function ChecklistFlow(props: {
   date: string; initialSheet: SheetId; hourNow: number; me: string; initialEntries: Entries; readOnly: boolean;
-  initialPhotos: Photos;
+  initialPhotos: Photos; names: NameBook;
 }) {
   const { date, hourNow, me, readOnly } = props;
   const supabase = useMemo(() => createClient(), []);
@@ -183,6 +187,7 @@ export function ChecklistFlow(props: {
   const field = { entries, type, typing };
 
   return (
+    <NamesCtx.Provider value={props.names}>
     <PhotoCtx.Provider value={photoApi}>
     <div className="checklist">
       <div className="countbar">
@@ -266,11 +271,12 @@ export function ChecklistFlow(props: {
       {viewing && (
         <div className="ck-viewer" role="dialog" aria-label="Foto" onClick={() => setViewing(null)}>
           {viewing.url && <img src={viewing.url} alt="Foto bukti" />}
-          <p>📷 {viewing.taken_by || "?"} · {clock(viewing.taken_at)} <span className="muted">(ketuk untuk tutup)</span></p>
+          <p>📷 {shortName(props.names, viewing.taken_by) || "?"} · {clock(viewing.taken_at)} <span className="muted">(ketuk untuk tutup)</span></p>
         </div>
       )}
     </div>
     </PhotoCtx.Provider>
+    </NamesCtx.Provider>
   );
 }
 
@@ -289,6 +295,7 @@ function Tick({ k, title, done }: { k: string; title: string; done: boolean }) {
 
 function PhotoStrip({ k }: { k: string }) {
   const api = useContext(PhotoCtx)!;
+  const name = useName();
   const list = api.photos[k] ?? [];
   if (!list.length && !api.error[k]) return null;
   return (
@@ -297,8 +304,8 @@ function PhotoStrip({ k }: { k: string }) {
         <div className="ck-photos">
           {list.map((p) => (
             <button key={p.id} type="button" className="ck-thumb" disabled={p.uploading || !p.url} onClick={() => api.view(p)}>
-              {p.url ? <img src={p.url} alt={`Foto oleh ${p.taken_by ?? "?"}`} /> : <span>Foto</span>}
-              <small>{p.uploading ? "Mengirim…" : `${p.taken_by ?? "?"} · ${clock(p.taken_at)}`}</small>
+              {p.url ? <img src={p.url} alt={`Foto oleh ${name(p.taken_by)}`} /> : <span>Foto</span>}
+              <small>{p.uploading ? "Mengirim…" : `${name(p.taken_by)} · ${clock(p.taken_at)}`}</small>
             </button>
           ))}
         </div>
@@ -329,6 +336,7 @@ function TextBox({ k, multiline, placeholder, numeric, entries, type, typing }: 
 function Item({ sheet, item, tick, field, readOnly, children }: {
   sheet: Sheet; item: CheckItem; tick: (keys: string[], done: boolean) => void; field: Field; readOnly: boolean; children?: React.ReactNode;
 }) {
+  const name = useName();
   const k = itemKey(sheet.id, item.key);
   const e = field.entries[k] ?? {};
   const note = field.entries[itemNoteKey(k)]?.value ?? "";
@@ -352,7 +360,7 @@ function Item({ sheet, item, tick, field, readOnly, children }: {
       )}
       {children}
       <div className="ck-extra">
-        {e.done && <span className="ck-by">✓ {e.done_by || "?"} · {clock(e.done_at)}</span>}
+        {e.done && <span className="ck-by">✓ {name(e.done_by)} · {clock(e.done_at)}</span>}
         <span className="spacer" />
         {item.link && <Link className="linkbtn" href={item.link.href}>{item.link.label} →</Link>}
         <PhotoButton k={k} title={item.text} done={!!e.done} />
@@ -367,6 +375,7 @@ function Item({ sheet, item, tick, field, readOnly, children }: {
 function Hourly({ section, entries, hourNow, date, tick, readOnly }: {
   section: Section; entries: Entries; hourNow: number; date: string; tick: (keys: string[], done: boolean) => void; readOnly: boolean;
 }) {
+  const name = useName();
   const all = hoursFor(date);
   const hours = all.filter((h) => h <= hourNow);
   if (!hours.length) return <p className="muted">Hourly check mulai jam {String(all[0]).padStart(2, "0")}.00.</p>;
@@ -375,7 +384,7 @@ function Hourly({ section, entries, hourNow, date, tick, readOnly }: {
       {[...hours].reverse().map((h) => {
         const keys = section.items.map((i) => hourlyKey(h, i.key));
         const done = keys.filter((k) => entries[k]?.done);
-        const by = [...new Set(done.map((k) => entries[k]?.done_by).filter(Boolean))].join(", ");
+        const by = [...new Set(done.map((k) => entries[k]?.done_by).filter(Boolean))].map(name).join(", ");
         const current = h === hourNow;
         const missed = !current && done.length === 0 && hourNow < 24;
         return (
@@ -402,7 +411,7 @@ function Hourly({ section, entries, hourNow, date, tick, readOnly }: {
                         <span>{i.text}</span>
                       </label>
                       <div className="ck-extra">
-                        {e.done && <span className="ck-by">✓ {e.done_by || "?"} · {clock(e.done_at)}</span>}
+                        {e.done && <span className="ck-by">✓ {name(e.done_by)} · {clock(e.done_at)}</span>}
                         <span className="spacer" />
                         <PhotoButton k={k} title={`${String(h).padStart(2, "0")}.00 · ${i.text}`} done={!!e.done} />
                       </div>

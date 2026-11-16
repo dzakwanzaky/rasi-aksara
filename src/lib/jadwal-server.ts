@@ -2,10 +2,17 @@ import { createClient } from "@/lib/supabase/server";
 import { adminConfigured, createAdminClient } from "@/lib/supabase/admin";
 import { accountLabel } from "@/lib/staff";
 import type { Account } from "@/lib/jadwal";
+import { loadNames } from "@/lib/names-server";
 
 /** Staff logins to link names in the sheet to. Needs the Supabase secret key (as /staff does); without it,
  * falls back to the usernames that have used Absen or are already linked. */
 export async function listAccounts(): Promise<Account[]> {
+  const book = await loadNames(await createClient());
+  const named = (a: Account): Account => (book[a.username] ? { ...a, name: book[a.username].full, nick: book[a.username].nick } : a);
+  return (await logins()).map(named);
+}
+
+async function logins(): Promise<Account[]> {
   if (adminConfigured()) {
     const { data } = await createAdminClient().auth.admin.listUsers({ perPage: 200 });
     const now = Date.now();

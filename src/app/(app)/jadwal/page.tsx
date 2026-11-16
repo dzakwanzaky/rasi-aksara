@@ -3,8 +3,10 @@ import { createClient } from "@/lib/supabase/server";
 import { todayJakarta } from "@/lib/data";
 import { isAdmin } from "@/lib/admin";
 import { accountLabel } from "@/lib/staff";
+import { scheduleName } from "@/lib/names";
+import { loadNames } from "@/lib/names-server";
 import {
-  JADWAL, addDays, dayLong, dayShort, displayName, jadwalInfo, weekStart, type ScheduleRow,
+  JADWAL, addDays, dayLong, dayShort, jadwalInfo, weekStart, type ScheduleRow,
 } from "@/lib/jadwal";
 
 export const dynamic = "force-dynamic";
@@ -47,7 +49,7 @@ export default async function JadwalPage({ searchParams }: { searchParams: Promi
   const params = await searchParams;
   const today = todayJakarta();
   const supabase = await createClient();
-  const [{ data: { session } }, admin] = await Promise.all([supabase.auth.getSession(), isAdmin(supabase)]);
+  const [{ data: { session } }, admin, book] = await Promise.all([supabase.auth.getSession(), isAdmin(supabase), loadNames(supabase)]);
   const me = accountLabel(session?.user.email);
 
   const day = isDate(params.d) ? params.d! : today;
@@ -145,7 +147,7 @@ export default async function JadwalPage({ searchParams }: { searchParams: Promi
             <div key={j.id} className={`panel jd-group ${j.id}`}>
               <p className="eyebrow">{j.label}{j.hours && ` · ${j.hours}`} · {who.length} orang</p>
               <p className="jd-names">
-                {who.map((r) => <span key={r.name} className={r.username && r.username === me ? "me" : undefined}>{displayName(r.name)}</span>)}
+                {who.map((r) => <span key={r.name} className={r.username && r.username === me ? "me" : undefined}>{scheduleName(book, r)}</span>)}
               </p>
             </div>
           );
@@ -170,7 +172,7 @@ export default async function JadwalPage({ searchParams }: { searchParams: Promi
               <tbody>
                 {names.map((n) => (
                   <tr key={n} className={week.some((r) => r.name === n && r.username === me) ? "me" : undefined}>
-                    <td>{displayName(n)}</td>
+                    <td>{scheduleName(book, week.find((r) => r.name === n)!)}</td>
                     {days.map((d) => {
                       const info = jadwalInfo(cell.get(`${d}|${n}`)?.shift);
                       return <td key={d} className={`jd-c ${info?.id ?? ""}${d === day ? " sel" : ""}`}>{info?.short ?? ""}</td>;

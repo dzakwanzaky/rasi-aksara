@@ -25,8 +25,10 @@ async function requireAdmin(): Promise<string> {
 export async function addStaff(form: FormData) {
   await requireAdmin();
   const username = normalizeUsername(String(form.get("username") ?? ""));
-  const name = String(form.get("name") ?? "").trim();
+  const name = String(form.get("full_name") ?? "").trim();
+  const nickname = String(form.get("nickname") ?? "").trim();
   const password = String(form.get("password") ?? "");
+  if (!name || !nickname) back("err", "Isi nama lengkap dan nama panggilan.");
   if (!validUsername(username)) back("err", `Username harus ${USERNAME_RULE}.`);
   if (password.length < 6) back("err", "Kata sandi minimal 6 karakter.");
 
@@ -39,8 +41,26 @@ export async function addStaff(form: FormData) {
   });
   if (error) back("err", /already|registered|exists/i.test(error.message) ? `Username "${username}" sudah dipakai.` : error.message);
   if (form.get("is_admin") && data.user) await admin.from("app_admins").insert({ user_id: data.user.id });
+  await admin.from("staff_profiles").upsert({ username, full_name: name, nickname, updated_at: new Date().toISOString() });
   revalidatePath("/staff");
   back("ok", `Akun "${username}" sudah dibuat. Masuk pakai username dan kata sandinya.`);
+}
+
+/** Full formal name and nickname, shown everywhere instead of the username (staff_profiles, 0019). */
+export async function setNames(form: FormData) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect("/login");
+  const username = normalizeUsername(String(form.get("username") ?? ""));
+  const full_name = String(form.get("full_name") ?? "").trim().replace(/\s+/g, " ");
+  const nickname = String(form.get("nickname") ?? "").trim().replace(/\s+/g, " ");
+  if (!username) back("err", "Akun tidak dikenal.");
+  if (!full_name || !nickname) back("err", "Isi nama lengkap dan nama panggilan.");
+  // Admin-only by the table's own rule (is_admin()), so this works without the secret key too.
+  const { error } = await supabase.from("staff_profiles").upsert({ username, full_name, nickname, updated_at: new Date().toISOString() });
+  if (error) back("err", /staff_profiles/.test(error.message) ? "Jalankan dulu 0019_nama_staff.sql di Supabase." : error.message);
+  revalidatePath("/", "layout");
+  back("ok", `Nama ${username} disimpan: ${full_name} (${nickname}).`);
 }
 
 export async function resetPassword(form: FormData) {
