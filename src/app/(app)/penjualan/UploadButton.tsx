@@ -1,8 +1,7 @@
 "use client";
 
-import { useFormStatus } from "react-dom";
+import { SubmitButton } from "@/components/SubmitButton";
 
 export function UploadButton() {
-  const { pending } = useFormStatus();
-  return <button className="btn primary" disabled={pending}>{pending ? "Membaca file…" : "Upload & hitung"}</button>;
+  return <SubmitButton className="btn primary" pendingText="Membaca file…">Upload & hitung</SubmitButton>;
 }

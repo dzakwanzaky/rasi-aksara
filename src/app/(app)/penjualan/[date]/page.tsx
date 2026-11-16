@@ -9,6 +9,7 @@ import { expectedUsage, verdict, type Menu, type RecipeLine } from "@/lib/sales"
 import { CATEGORIES, dateLabel, sortItems, type Item } from "@/lib/types";
 import { usageOf } from "@/lib/usage";
 import { deleteSalesDay } from "../actions";
+import { SubmitButton } from "@/components/SubmitButton";
 
 export const dynamic = "force-dynamic";
 
@@ -187,7 +188,7 @@ export default async function PenjualanTanggal({
           <form action={deleteSalesDay} className="row">
             <input type="hidden" name="date" value={date} />
             <span className="small">Hapus data penjualan tanggal ini?</span>
-            <button className="btn danger small">Ya, hapus</button>
+            <SubmitButton className="btn danger small" pendingText="Menghapus…">Ya, hapus</SubmitButton>
             <Link className="btn small" href={`/penjualan/${date}`}>Batal</Link>
           </form>
         ) : (

@@ -4,6 +4,8 @@ import { useActionState, useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { previewUpload, saveSchedule, type Preview, type PreviewPerson } from "../actions";
 import { displayName, jadwalInfo, monthDate, monthLabel, dayShort } from "@/lib/jadwal";
+import { startNavProgress } from "@/components/NavProgress";
+import { Spinner } from "@/components/SubmitButton";
 
 export function UploadPreview({ month }: { month: string }) {
   const [preview, read, reading] = useActionState<Preview | null, FormData>(previewUpload, null);
@@ -27,6 +29,7 @@ export function UploadPreview({ month }: { month: string }) {
     startSave(async () => {
       try {
         await saveSchedule(target, people.map((p) => ({ name: p.name, username: p.username, shifts: p.shifts })));
+        startNavProgress();
         router.push(`/jadwal/atur?m=${target}&ok=1`);
         router.refresh();
       } catch (e) {
@@ -45,7 +48,7 @@ export function UploadPreview({ month }: { month: string }) {
       <form action={read} className="row" style={{ marginTop: 10 }}>
         <input type="hidden" name="month" value={month} />
         <input type="file" name="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" required />
-        <button className="btn" disabled={reading}>{reading ? "Membaca…" : "Lihat dulu"}</button>
+        <button className="btn" disabled={reading}>{reading ? <><Spinner />Membaca…</> : "Lihat dulu"}</button>
       </form>
 
       {preview && "error" in preview && <p className="error">{preview.error}</p>}
@@ -104,7 +107,7 @@ export function UploadPreview({ month }: { month: string }) {
           {err && <p className="error">{err}</p>}
           {target ? (
             <button className="btn primary" style={{ marginTop: 12 }} onClick={save} disabled={saving}>
-              {saving ? "Menyimpan…" : `Simpan jadwal ${monthLabel(target)}`}
+              {saving ? <><Spinner />Menyimpan…</> : `Simpan jadwal ${monthLabel(target)}`}
             </button>
           ) : (
             <p className="error">Tulis tanggal bulan di atas tabel (mis. 01/11/2026), atau pilih bulannya di atas lalu upload lagi.</p>

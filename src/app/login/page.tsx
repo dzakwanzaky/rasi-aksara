@@ -4,6 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { loginEmail } from "@/lib/staff";
+import { Spinner } from "@/components/SubmitButton";
+import { startNavProgress } from "@/components/NavProgress";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -19,9 +21,12 @@ export default function LoginPage() {
       email: loginEmail(String(form.get("username"))),
       password: String(form.get("password")),
     });
-    setBusy(false);
-    if (error) setError("Username atau kata sandi salah. Minta akun ke pemilik kafe jika belum punya.");
-    else {
+    if (error) {
+      setBusy(false);
+      setError("Username atau kata sandi salah. Minta akun ke pemilik kafe jika belum punya.");
+    } else {
+      // Stay busy until the app has opened, so the button never looks idle while it loads.
+      startNavProgress();
       router.replace("/hitung");
       router.refresh();
     }
@@ -36,7 +41,7 @@ export default function LoginPage() {
         <label className="f">Username<input id="username" name="username" autoComplete="username" autoCapitalize="none" autoCorrect="off" spellCheck={false} required /></label>
         <label className="f">Kata sandi<input id="password" name="password" type="password" autoComplete="current-password" required /></label>
         {error && <p className="error">{error}</p>}
-        <button className="btn primary" disabled={busy}>{busy ? "Masuk…" : "Masuk"}</button>
+        <button className="btn primary" disabled={busy}>{busy ? <><Spinner />Masuk…</> : "Masuk"}</button>
       </form>
     </main>
   );

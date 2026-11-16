@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/client";
 import { formatQty, parseQty, type Line } from "@/lib/qty";
 import { CATEGORIES, type Item } from "@/lib/types";
 import { finishCount } from "../actions";
+import { Spinner } from "@/components/SubmitButton";
 
 type Lines = Record<number, Partial<Line>>;
 
@@ -246,7 +247,7 @@ export function CountFlow(props: {
             startTransition(() => finishCount(form));
           }}
         >
-          {finishing ? "Menyimpan…" : "Selesai hitung"}
+          {finishing ? <><Spinner />Menyimpan…</> : "Selesai hitung"}
         </button>
       </div>
     </div>

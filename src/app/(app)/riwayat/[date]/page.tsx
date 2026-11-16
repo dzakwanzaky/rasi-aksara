@@ -6,6 +6,7 @@ import { usageOf } from "@/lib/usage";
 import { CATEGORIES, dateLabel } from "@/lib/types";
 import { notFound } from "next/navigation";
 import { deleteSession } from "../../actions";
+import { SubmitButton } from "@/components/SubmitButton";
 
 // Terpakai (used) = stok kemarin + barang masuk − sisa sekarang
 export default async function RiwayatTanggal({
@@ -136,7 +137,7 @@ export default async function RiwayatTanggal({
           <form action={deleteSession} className="row">
             <input type="hidden" name="id" value={session.id} />
             <span className="small">Hapus hitungan ini beserta semua angkanya?</span>
-            <button className="btn danger small">Ya, hapus</button>
+            <SubmitButton className="btn danger small" pendingText="Menghapus…">Ya, hapus</SubmitButton>
             <Link className="btn small" href={`/riwayat/${session.count_date}`}>Batal</Link>
           </form>
         ) : (

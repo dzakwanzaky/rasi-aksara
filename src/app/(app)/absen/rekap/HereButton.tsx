@@ -19,7 +19,7 @@ export function HereButton({ target }: { target: string }) {
   }
   return (
     <>
-      <button type="button" className="btn" onClick={fill}>📍 Pakai lokasi HP ini</button>
+      <button type="button" className="btn" onClick={fill} disabled={state === "Membaca lokasi…"}>📍 Pakai lokasi HP ini</button>
       {state && <span className="muted small">{state}</span>}
     </>
   );

@@ -4,6 +4,7 @@ import { formatQty } from "@/lib/qty";
 import { CATEGORIES, sortItems, type Item } from "@/lib/types";
 import { archiveItem, saveItem, setMinStock } from "../actions";
 import { isAdmin } from "@/lib/admin";
+import { SubmitButton } from "@/components/SubmitButton";
 
 export default async function Bahan({ searchParams }: { searchParams: Promise<{ edit?: string }> }) {
   const { edit: editParam } = await searchParams;
@@ -43,12 +44,12 @@ export default async function Bahan({ searchParams }: { searchParams: Promise<{ 
           </div>
           <p className="help">Isi per kemasan dipakai untuk membaca hitungan seperti “5, 329 gr” (5 kemasan + 329 gr sisa).</p>
           <div className="row">
-            <button className="btn primary">{editing ? "Simpan" : "Tambah"}</button>
+            <SubmitButton className="btn primary">{editing ? "Simpan" : "Tambah"}</SubmitButton>
             <Link className="btn" href="/bahan">Batal</Link>
             {editing && (
               <>
                 <span className="spacer" />
-                <button className="btn danger" formAction={archiveItem}>Hapus dari daftar</button>
+                <SubmitButton className="btn danger" formAction={archiveItem} pendingText="Menghapus…">Hapus dari daftar</SubmitButton>
               </>
             )}
           </div>
@@ -91,7 +92,7 @@ export default async function Bahan({ searchParams }: { searchParams: Promise<{ 
                       <input type="hidden" name="id" value={i.id} />
                       <label className="small muted" htmlFor={`min-${i.id}`}>Min</label>
                       <input id={`min-${i.id}`} name="min_stock" inputMode="decimal" defaultValue={i.min_stock ?? ""} placeholder="–" />
-                      <button className="btn small">Simpan</button>
+                      <SubmitButton className="btn small">Simpan</SubmitButton>
                     </form>
                     <Link className="btn small" href={`/bahan?edit=${i.id}`}>Ubah</Link>
                   </div>}

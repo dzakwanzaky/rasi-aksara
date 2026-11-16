@@ -8,9 +8,14 @@ import { SHIFTS, clock, durationLabel, minutesWorked, summarize, type Attendance
 import { DatePick } from "../../checklist/DatePick";
 import { deleteAttendance, fixClockOut, saveLocation } from "../actions";
 import { HereButton } from "./HereButton";
+<<<<<<< HEAD
 import { JADWAL, checkAttendance, type SchedCheck, type ScheduleRow } from "@/lib/jadwal";
 import { fullName, scheduleName, shortName } from "@/lib/names";
 import { loadNames } from "@/lib/names-server";
+=======
+import { JADWAL, checkAttendance, displayName, type SchedCheck, type ScheduleRow } from "@/lib/jadwal";
+import { SubmitButton } from "@/components/SubmitButton";
+>>>>>>> origin/main
 
 const nowHHMM = () =>
   new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Jakarta", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(new Date());
@@ -141,12 +146,12 @@ export default async function Rekap({ searchParams }: { searchParams: Promise<{ 
                       <label className="f">Jam keluar
                         <input name="time" inputMode="decimal" placeholder="22.30" defaultValue={clock(r.clock_out)} size={6} />
                       </label>
-                      <button className="btn small">Simpan</button>
+                      <SubmitButton className="btn small">Simpan</SubmitButton>
                     </form>
                     <form action={deleteAttendance} style={{ marginTop: 8 }}>
                       <input type="hidden" name="date" value={date} />
                       <input type="hidden" name="id" value={r.id} />
-                      <button className="btn small danger">Hapus absen ini</button>
+                      <SubmitButton className="btn small danger" pendingText="Menghapus…">Hapus absen ini</SubmitButton>
                     </form>
                   </details>
                 </li>
@@ -199,7 +204,7 @@ export default async function Rekap({ searchParams }: { searchParams: Promise<{ 
           </label>
           <div className="row" style={{ alignSelf: "end" }}>
             <HereButton target="ab-where" />
-            <button className="btn primary">Simpan lokasi</button>
+            <SubmitButton className="btn primary">Simpan lokasi</SubmitButton>
           </div>
         </form>
         <p className="help small">
