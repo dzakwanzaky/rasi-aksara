@@ -7,6 +7,8 @@ import { SHIFTS, clock, durationLabel, minutesWorked, shiftForHour, type Attenda
 import { AbsenFlow } from "./AbsenFlow";
 import { accountLabel } from "@/lib/staff";
 import { jadwalInfo } from "@/lib/jadwal";
+import { shortName } from "@/lib/names";
+import { loadNames } from "@/lib/names-server";
 
 const hourJakarta = () =>
   Number(new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Jakarta", hour: "2-digit", hourCycle: "h23" }).format(new Date()));
@@ -42,6 +44,7 @@ export default async function Absen() {
   const { data: sched } = await supabase.from("shift_schedule").select("shift")
     .eq("work_date", today).eq("username", accountLabel(user?.email)).maybeSingle();
   const planned = jadwalInfo(sched?.shift as string | undefined);
+  const book = await loadNames(supabase);
 
   return (
     <>
@@ -82,7 +85,7 @@ export default async function Absen() {
               <ul className="ab-people">
                 {inShift.map((r) => (
                   <li key={r.id}>
-                    <b>{r.username}</b>
+                    <b>{shortName(book, r.username)}</b>
                     <span className="ab-times">
                       {clock(r.clock_in)} – {r.clock_out ? clock(r.clock_out) : <span className="flag warn">masih bekerja</span>}
                     </span>

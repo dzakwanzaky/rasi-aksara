@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { readXlsxRows } from "@/lib/sales";
 import { accountLabel } from "@/lib/staff";
 import { listAccounts } from "@/lib/jadwal-server";
+import { loadNames } from "@/lib/names-server";
 import { daysInMonth, matchAccount, monthDate, parseSchedule, type Account, type Jadwal } from "@/lib/jadwal";
 
 async function admin() {
@@ -57,9 +58,14 @@ export async function saveSchedule(month: string, people: { name: string; userna
   const { supabase, by } = await admin();
   if (!/^\d{4}-\d{2}$/.test(month)) throw new Error("Bulan tidak valid.");
   const last = daysInMonth(month);
+  // A row linked to a login is saved under that person's official nickname, so typos in the sheet
+  // (RIFKI, CHANDRA) never reach the schedule.
+  const book = await loadNames(supabase);
+  const nameOf = (p: { name: string; username: string | null }) =>
+    p.username && book[p.username] ? book[p.username].nick.toUpperCase() : p.name.trim();
   const rows = people.flatMap((p) =>
     p.shifts.slice(0, last).flatMap((shift, i) =>
-      shift ? [{ work_date: monthDate(month, i + 1), name: p.name.trim(), username: p.username || null, shift, updated_by_name: by }] : []));
+      shift ? [{ work_date: monthDate(month, i + 1), name: nameOf(p), username: p.username || null, shift, updated_by_name: by }] : []));
   if (!rows.length) throw new Error("Tidak ada jadwal untuk disimpan.");
   const del = await supabase.from("shift_schedule").delete().gte("work_date", monthDate(month, 1)).lte("work_date", monthDate(month, last));
   if (del.error) throw new Error(del.error.message);

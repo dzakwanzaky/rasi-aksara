@@ -18,8 +18,10 @@ const isMoney = (k: string): k is MoneyKey => MONEY_FIELDS.some((f) => f.key ===
 const when = (iso: string | null | undefined) =>
   iso ? new Date(iso).toLocaleString("id-ID", { timeZone: "Asia/Jakarta", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : "";
 
+import { shortName, type NameBook } from "@/lib/names";
+
 export function ReportForm(props: {
-  date: string; initialShift: ShiftId; initialReports: Partial<Record<ShiftId, Report>>; me: string; readOnly: boolean;
+  date: string; initialShift: ShiftId; initialReports: Partial<Record<ShiftId, Report>>; me: string; readOnly: boolean; names: NameBook;
 }) {
   const { date, me, readOnly } = props;
   const supabase = useMemo(() => createClient(), []);
@@ -106,7 +108,7 @@ export function ReportForm(props: {
         </div>
         <div className="row">
           <p className="progress-text muted">
-            {last ? <>Terakhir diisi {last.updated_by_name === "sheet" ? "dari sheet" : last.updated_by_name || "?"} · {when(last.updated_at)}</> : "Belum diisi"}
+            {last ? <>Terakhir diisi {last.updated_by_name === "sheet" ? "dari sheet" : shortName(props.names, last.updated_by_name) || "?"} · {when(last.updated_at)}</> : "Belum diisi"}
           </p>
           <span className="spacer" />
           <span className={`savestate ${saveState}`}>

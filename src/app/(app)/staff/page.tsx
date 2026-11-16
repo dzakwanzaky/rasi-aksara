@@ -1,7 +1,8 @@
 import { createClient } from "@/lib/supabase/server";
 import { adminConfigured, createAdminClient } from "@/lib/supabase/admin";
 import { accountLabel, USERNAME_RULE } from "@/lib/staff";
-import { addStaff, resetPassword, setActive, setAdmin } from "./actions";
+import { loadNames } from "@/lib/names-server";
+import { addStaff, resetPassword, setActive, setAdmin, setNames } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -41,7 +42,9 @@ export default async function StaffPage({ searchParams }: { searchParams: Promis
   }
 
   const { data, error } = await createAdminClient().auth.admin.listUsers({ perPage: 200 });
-  const users = (data?.users ?? []).sort((a, b) => accountLabel(a.email).localeCompare(accountLabel(b.email)));
+  const book = await loadNames(supabase);
+  const label = (email: string | undefined) => book[accountLabel(email)]?.full ?? accountLabel(email);
+  const users = (data?.users ?? []).sort((a, b) => label(a.email).localeCompare(label(b.email)));
   const now = Date.now();
 
   return (
@@ -54,7 +57,8 @@ export default async function StaffPage({ searchParams }: { searchParams: Promis
         <p className="muted">Tidak perlu email. Staff masuk pakai username dan kata sandi ini.</p>
         <form action={addStaff} className="staff-form">
           <label className="f">Username<input name="username" required autoCapitalize="none" autoCorrect="off" autoComplete="off" pattern="[A-Za-z0-9][A-Za-z0-9._\-]{2,29}" title={USERNAME_RULE} placeholder="mis. budi" /></label>
-          <label className="f">Nama (boleh kosong)<input name="name" autoComplete="off" placeholder="mis. Budi Santoso" /></label>
+          <label className="f">Nama lengkap (sesuai KTP)<input name="full_name" required autoComplete="off" placeholder="mis. Budi Santoso" /></label>
+          <label className="f">Nama panggilan<input name="nickname" required autoComplete="off" placeholder="mis. Budi" /></label>
           <label className="f">Kata sandi<input name="password" required minLength={6} autoComplete="new-password" placeholder="minimal 6 karakter" /></label>
           <label className="check"><input type="checkbox" name="is_admin" /> Jadikan admin (boleh mengatur staff)</label>
           <button className="btn primary">Buat akun</button>
@@ -71,12 +75,13 @@ export default async function StaffPage({ searchParams }: { searchParams: Promis
             const banned = bannedUntil ? new Date(bannedUntil).getTime() > now : false;
             const isAdmin = adminIds.has(u.id);
             const me = u.id === session.user.id;
-            const name = (u.user_metadata?.name as string | undefined) || "";
+            const username = accountLabel(u.email);
+            const names = book[username];
             return (
               <li key={u.id} className={banned ? "off" : undefined}>
                 <div className="staff-head">
-                  <b>{accountLabel(u.email)}</b>
-                  {name && <span className="muted">{name}</span>}
+                  <b>{names ? names.full : username}</b>
+                  {names ? <span className="muted">{names.nick} · login: {username}</span> : !username.includes("@") && <span className="flag warn">nama formal belum diisi</span>}
                   {isAdmin && <span className="unit-tag">admin</span>}
                   {banned && <span className="unit-tag off">nonaktif</span>}
                   {me && <span className="muted">(kamu)</span>}
@@ -84,6 +89,12 @@ export default async function StaffPage({ searchParams }: { searchParams: Promis
                 <p className="muted">Terakhir masuk: {fmt(u.last_sign_in_at)}</p>
                 <details>
                   <summary>Atur akun</summary>
+                  <form action={setNames} className="staff-form">
+                    <input type="hidden" name="username" value={username} />
+                    <label className="f">Nama lengkap<input name="full_name" required defaultValue={names?.full ?? ""} autoComplete="off" /></label>
+                    <label className="f">Nama panggilan<input name="nickname" required defaultValue={names?.nick ?? ""} autoComplete="off" /></label>
+                    <button className="btn small">Simpan nama</button>
+                  </form>
                   <form action={resetPassword} className="row">
                     <input type="hidden" name="id" value={u.id} />
                     <input name="password" minLength={6} required placeholder="kata sandi baru" autoComplete="new-password" aria-label="Kata sandi baru" />

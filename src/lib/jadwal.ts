@@ -128,7 +128,8 @@ export function parseSchedule(rows: string[][], fallbackMonth?: string): ParsedS
   return { month, people, days, warnings };
 }
 
-export type Account = { username: string; name: string };
+/** A staff login; `name` is the full formal name and `nick` the nickname (staff_profiles, 0019), when known. */
+export type Account = { username: string; name: string; nick?: string };
 
 const letters = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
 
@@ -151,7 +152,7 @@ function editDistance(a: string, b: string): number {
 export function matchAccount(name: string, accounts: Account[]): { username: string; sure: boolean } | null {
   const n = letters(name);
   if (!n) return null;
-  const keys = (a: Account) => [letters(a.username), letters(a.name), letters(a.name.split(/\s+/)[0] ?? "")].filter(Boolean);
+  const keys = (a: Account) => [letters(a.username), letters(a.nick ?? ""), letters(a.name), ...a.name.split(/\s+/).map(letters)].filter(Boolean);
   const exact = accounts.filter((a) => keys(a).includes(n));
   if (exact.length === 1) return { username: exact[0].username, sure: true };
   if (exact.length > 1) return null;
