@@ -7,6 +7,7 @@ import { addDays, methodOf } from "@/lib/omzet";
 import { dayState, qrisCheck, signed, tunaiCheck, type CashByShift, type Settings, type ShiftReport } from "@/lib/rekon";
 import { dateLabel } from "@/lib/types";
 import { pasteCash, saveCash, saveQris, saveSettings } from "../actions";
+import { SubmitButton } from "@/components/SubmitButton";
 
 export const dynamic = "force-dynamic";
 
@@ -125,7 +126,7 @@ export default async function Rekonsiliasi({ searchParams }: { searchParams: Pro
             Batas selisih (Rp)
             <input name="batas_selisih" inputMode="numeric" placeholder="belum diisi" defaultValue={formatNumber(settings.batas_selisih)} />
           </label>
-          <div className="row"><button className="btn primary">Simpan</button></div>
+          <div className="row"><SubmitButton className="btn primary">Simpan</SubmitButton></div>
         </form>
         <p className="help">
           Lihat potongan dan jeda di mutasi rekening atau laporan settlement QRIS. Selama potongan belum diisi, QRIS dibandingkan dengan
@@ -138,7 +139,7 @@ export default async function Rekonsiliasi({ searchParams }: { searchParams: Pro
         <form action={pasteCash} style={{ marginTop: 12 }}>
           <textarea name="text" className="rk-paste" rows={5} placeholder={"22 okt shift 1 517000\n22 okt shift 2 773000\n23 okt shift 2 555.000"} />
           <p className="help">Satu baris per shift: tanggal, shift, uang aktual <b>setelah dikurangi modal</b>. Angka lama untuk shift yang sama akan diganti.</p>
-          <div className="row"><button className="btn primary">Simpan</button></div>
+          <div className="row"><SubmitButton className="btn primary">Simpan</SubmitButton></div>
         </form>
       </details>
 
@@ -174,7 +175,7 @@ export default async function Rekonsiliasi({ searchParams }: { searchParams: Pro
                     <span className="small muted">Uang aktual setelah modal</span>
                     <label>Shift 1<input name="shift1" inputMode="numeric" placeholder="–" defaultValue={formatNumber(net("1"))} /></label>
                     <label>Shift 2<input name="shift2" inputMode="numeric" placeholder="–" defaultValue={formatNumber(net("2"))} /></label>
-                    <button className="btn small">Simpan</button>
+                    <SubmitButton className="btn small">Simpan</SubmitButton>
                   </form>
                   {t.missing.length > 0 && (
                     <p className="small muted">
@@ -197,7 +198,7 @@ export default async function Rekonsiliasi({ searchParams }: { searchParams: Pro
                     <form action={saveQris} className="rk-form">
                       <input type="hidden" name="date" value={d.sale_date} />
                       <input name="amount" inputMode="numeric" placeholder="QRIS masuk" aria-label={`QRIS masuk untuk ${dateLabel(d.sale_date)}`} defaultValue={formatNumber(q.masuk)} />
-                      <button className="btn small">Simpan</button>
+                      <SubmitButton className="btn small">Simpan</SubmitButton>
                     </form>
                   )}
                   {q.majoo > 0 && settings.qris_lag_days != null && (

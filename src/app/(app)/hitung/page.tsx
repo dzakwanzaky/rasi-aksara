@@ -5,6 +5,7 @@ import { dateLabel } from "@/lib/types";
 import { openCount, syncCarryOver } from "@/lib/session";
 import { startCount } from "../actions";
 import { CountFlow } from "./CountFlow";
+import { SubmitButton } from "@/components/SubmitButton";
 
 export default async function Hitung({ searchParams }: { searchParams: Promise<{ date?: string }> }) {
   const today = countDayJakarta();
@@ -33,7 +34,7 @@ export default async function Hitung({ searchParams }: { searchParams: Promise<{
         </p>
         <form action={startCount}>
           <input type="hidden" name="count_date" value={date} />
-          <button className="btn primary bigbtn">Mulai hitung stok</button>
+          <SubmitButton className="btn primary bigbtn" pendingText="Membuka…">Mulai hitung stok</SubmitButton>
         </form>
         {last && (
           <p className="muted">

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { pushPublicKey, removePushSubscription, savePushSubscription, type PhoneSubscription } from "./push-actions";
+import { Spinner } from "@/components/SubmitButton";
 
 // Lets a staff member turn on round notifications on their own phone (Zaky, 13 Nov 2026). Shown on the Checklist
 // page. iPhones only allow it from the app installed on the home screen (iOS 16.4+), so they get those steps first.
@@ -126,7 +127,7 @@ export function NotifCard() {
           <p className="notif-title">Dapat pengingat tiap ronde?</p>
           <p className="help">HP ini akan berbunyi jam 10, 12, 14, 17 dan 20 saat kamu sedang shift, dan sekali lagi 30 menit kemudian kalau ronde belum lengkap.</p>
           <div className="row">
-            <button className="btn primary" onClick={turnOn} disabled={busy}>{busy ? "Menyalakan…" : "Nyalakan notifikasi"}</button>
+            <button className="btn primary" onClick={turnOn} disabled={busy}>{busy ? <><Spinner />Menyalakan…</> : "Nyalakan notifikasi"}</button>
             {install && <button className="btn" onClick={doInstall}>Pasang aplikasi di HP</button>}
           </div>
         </>

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { signOut } from "./actions";
 import { accountLabel } from "@/lib/staff";
 import { isAdmin } from "@/lib/admin";
+import { SubmitButton } from "@/components/SubmitButton";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
@@ -16,7 +17,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <form action={signOut} className="row">
           <span className="muted who">{accountLabel(session?.user.email)}</span>
           {admin && <Link href="/staff" className="btn small">Staff</Link>}
-          <button className="btn small">Keluar akun</button>
+          <SubmitButton className="btn small" pendingText="Keluar…">Keluar akun</SubmitButton>
         </form>
       </header>
       <Nav admin={admin} />

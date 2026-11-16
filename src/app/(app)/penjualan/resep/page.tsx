@@ -6,6 +6,7 @@ import { formatQty } from "@/lib/qty";
 import { recipeQty, type Menu, type RecipeLine } from "@/lib/sales";
 import { sortItems, type Item } from "@/lib/types";
 import { deleteMenu, saveMenu, saveRecipeLine } from "../actions";
+import { SubmitButton } from "@/components/SubmitButton";
 
 export const dynamic = "force-dynamic";
 
@@ -50,7 +51,7 @@ export default async function Resep({ searchParams }: { searchParams: Promise<{ 
       <form action={saveMenu} className="panel row">
         <label className="f" style={{ flex: "2 1 180px" }}>Menu baru (nama di Majoo)<input name="name" required /></label>
         <label className="f" style={{ flex: "1 1 100px" }}>Harga<input name="price" inputMode="numeric" placeholder="18000" /></label>
-        <button className="btn">Tambah menu</button>
+        <SubmitButton className="btn" pendingText="Menambah…">Tambah menu</SubmitButton>
       </form>
 
       <div className="group">
@@ -66,7 +67,7 @@ export default async function Resep({ searchParams }: { searchParams: Promise<{ 
               <input type="hidden" name="id" value={m.id} />
               <label className="f" style={{ flex: "2 1 160px" }}>Nama<input name="name" defaultValue={m.name} /></label>
               <label className="f" style={{ flex: "1 1 90px" }}>Harga<input name="price" inputMode="numeric" defaultValue={m.price ?? ""} /></label>
-              <button className="btn small">Simpan</button>
+              <SubmitButton className="btn small">Simpan</SubmitButton>
             </form>
 
             <ul className="list">
@@ -87,7 +88,7 @@ export default async function Resep({ searchParams }: { searchParams: Promise<{ 
                       <input type="hidden" name="menu_id" value={m.id} />
                       <input type="hidden" name="item_id" value={l.item_id} />
                       <input name="qty" defaultValue={l.qty} aria-label={`Jumlah ${item.name}`} style={{ width: 96 }} />
-                      <button className="btn small">Simpan</button>
+                      <SubmitButton className="btn small">Simpan</SubmitButton>
                     </form>
                   </li>
                 );
@@ -103,14 +104,14 @@ export default async function Resep({ searchParams }: { searchParams: Promise<{ 
                 </select>
               </label>
               <label className="f" style={{ flex: "1 1 90px" }}>Jumlah<input name="qty" required placeholder="100 gr" /></label>
-              <button className="btn small">Tambah</button>
+              <SubmitButton className="btn small" pendingText="Menambah…">Tambah</SubmitButton>
             </form>
             <details style={{ marginTop: 10 }}>
               <summary className="muted small">Hapus menu ini</summary>
               <form action={deleteMenu} className="row">
                 <input type="hidden" name="id" value={m.id} />
                 <span className="small">Menu dan resepnya akan dihapus.</span>
-                <button className="btn danger small">Ya, hapus</button>
+                <SubmitButton className="btn danger small" pendingText="Menghapus…">Ya, hapus</SubmitButton>
               </form>
             </details>
           </details>

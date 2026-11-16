@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import { Suspense } from "react";
 import { InstallBanner } from "./InstallBanner";
+import { NavProgress } from "@/components/NavProgress";
 
 export const metadata: Metadata = {
   title: "Rasi Aksara",
@@ -29,6 +31,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body>
+        <Suspense fallback={null}><NavProgress /></Suspense>
         {children}
         <InstallBanner />
       </body>

@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { setCell } from "../actions";
 import { JADWAL, dayLong, dayShort, displayName, jadwalInfo, monthDate, type Jadwal, type ScheduleRow } from "@/lib/jadwal";
+import { Spinner } from "@/components/SubmitButton";
 
 type Sel = { date: string; name: string };
 
@@ -10,7 +11,7 @@ export function MonthGrid({ month, days, today, rows }: { month: string; days: n
   const [cells, setCells] = useState(() => new Map(rows.map((r) => [`${r.work_date}|${r.name}`, r.shift])));
   const [sel, setSel] = useState<Sel | null>(null);
   const [err, setErr] = useState("");
-  const [, start] = useTransition();
+  const [saving, start] = useTransition();
   const names = [...new Set(rows.map((r) => r.name))].sort((a, b) => a.localeCompare(b));
   const usernameOf = new Map(rows.map((r) => [r.name, r.username]));
   const dates = Array.from({ length: days }, (_, i) => monthDate(month, i + 1));
@@ -69,7 +70,7 @@ export function MonthGrid({ month, days, today, rows }: { month: string; days: n
           </tbody>
         </table>
       </div>
-      <p className="muted small">Tap satu kotak untuk mengganti shift. Perubahan langsung tersimpan.</p>
+      <p className="muted small">{saving ? <><Spinner />Menyimpan perubahan…</> : "Tap satu kotak untuk mengganti shift. Perubahan langsung tersimpan."}</p>
 
       {sel && (
         <div className="jd-sheet" role="dialog" aria-label="Ganti shift">

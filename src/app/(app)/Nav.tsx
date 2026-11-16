@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 
 const TABS = [
   { href: "/absen", label: "Absen" },
@@ -17,10 +18,19 @@ const TABS = [
 
 export function Nav({ admin }: { admin: boolean }) {
   const path = usePathname();
+  // Highlight the tapped tab straight away, before its page has loaded.
+  const [tapped, setTapped] = useState<string | null>(null);
+  useEffect(() => setTapped(null), [path]);
   return (
     <nav className="tabs">
       {(admin ? [...TABS, { href: "/omzet", label: "Omzet" }, { href: "/penjualan", label: "Penjualan" }, { href: "/performa", label: "Performa" }] : TABS).map((t) => (
-        <Link key={t.href} href={t.href} aria-current={path.startsWith(t.href) ? "page" : undefined}>
+        <Link
+          key={t.href}
+          href={t.href}
+          onClick={() => !path.startsWith(t.href) && setTapped(t.href)}
+          className={tapped === t.href ? "pending" : undefined}
+          aria-current={(tapped ? tapped === t.href : path.startsWith(t.href)) ? "page" : undefined}
+        >
           {t.label}
         </Link>
       ))}

@@ -6,6 +6,7 @@ import { rupiah } from "@/lib/laporan";
 import { METHODS, percent, summarize, topMenus, type TrxRow } from "@/lib/omzet";
 import { dateLabel } from "@/lib/types";
 import { deleteSalesDay } from "../../penjualan/actions";
+import { SubmitButton } from "@/components/SubmitButton";
 
 export const dynamic = "force-dynamic";
 
@@ -139,7 +140,7 @@ export default async function OmzetTanggal({
             <input type="hidden" name="date" value={date} />
             <input type="hidden" name="from" value="omzet" />
             <span className="small">Hapus data penjualan tanggal ini?</span>
-            <button className="btn danger small">Ya, hapus</button>
+            <SubmitButton className="btn danger small" pendingText="Menghapus…">Ya, hapus</SubmitButton>
             <Link className="btn small" href={`/omzet/${date}`}>Batal</Link>
           </form>
         ) : (
