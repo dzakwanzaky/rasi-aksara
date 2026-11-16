@@ -8,6 +8,23 @@ import { SHIFTS, clock, durationLabel, minutesWorked, summarize, type Attendance
 import { DatePick } from "../../checklist/DatePick";
 import { deleteAttendance, fixClockOut, saveLocation } from "../actions";
 import { HereButton } from "./HereButton";
+import { JADWAL, checkAttendance, displayName, type SchedCheck, type ScheduleRow } from "@/lib/jadwal";
+
+const nowHHMM = () =>
+  new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Jakarta", hour: "2-digit", minute: "2-digit", hourCycle: "h23" }).format(new Date());
+
+function SchedStatus({ c }: { c: SchedCheck }) {
+  const t = c.clockIn ? clock(c.clockIn) : "";
+  switch (c.status) {
+    case "ok": return <span className="muted small">masuk {t}</span>;
+    case "other-shift": return <span className="flag warn">absen di shift lain ({t})</span>;
+    case "absent": return <span className="flag bad">belum absen</span>;
+    case "not-yet": return <span className="muted small">belum mulai</span>;
+    case "unlinked": return <span className="muted small">nama belum terhubung ke akun</span>;
+    case "off-but-in": return <span className="flag warn">jadwal libur, tapi absen {t}</span>;
+    default: return null;
+  }
+}
 
 const shiftDay = (date: string, days: number) => {
   const d = new Date(date + "T00:00:00Z");
@@ -34,6 +51,8 @@ export default async function Rekap({ searchParams }: { searchParams: Promise<{ 
     supabase.from("attendance").select(cols).gte("work_date", monthStart).lte("work_date", date),
     supabase.from("attendance_settings").select("lat, lng, radius_m, updated_by_name, updated_at").eq("id", 1).maybeSingle(),
   ]);
+  // Who the schedule (0018) says works this day; nothing if the table is not there yet.
+  const { data: schedRows } = await supabase.from("shift_schedule").select("work_date, name, username, shift").eq("work_date", date);
 
   if (error) {
     return (
@@ -48,6 +67,8 @@ export default async function Rekap({ searchParams }: { searchParams: Promise<{ 
   const rows = (dayRows ?? []) as AttendanceRow[];
   const month = summarize((monthRows ?? []) as AttendanceRow[], today);
   const next = shiftDay(date, 1);
+  const checks = checkAttendance((schedRows ?? []) as ScheduleRow[], rows, date, today, nowHHMM())
+    .sort((a, b) => a.name.localeCompare(b.name));
 
   return (
     <>
@@ -64,6 +85,27 @@ export default async function Rekap({ searchParams }: { searchParams: Promise<{ 
       </div>
 
       {params.error && <p className="error">{params.error}</p>}
+
+      {checks.length > 0 && (
+        <section className="panel">
+          <p className="eyebrow">Jadwal vs absen</p>
+          {JADWAL.map((j) => {
+            const list = checks.filter((c) => c.shift === j.id);
+            if (!list.length || (j.id === "libur" && !list.some((c) => c.status === "off-but-in"))) return null;
+            return (
+              <div key={j.id} style={{ marginTop: 8 }}>
+                <b>{j.label}</b>{j.hours && <span className="muted small"> · {j.hours}</span>}
+                <ul className="ab-sched">
+                  {list.filter((c) => j.id !== "libur" || c.status === "off-but-in").map((c) => (
+                    <li key={c.name}>{displayName(c.name)} <SchedStatus c={c} /></li>
+                  ))}
+                </ul>
+              </div>
+            );
+          })}
+          <p className="muted small" style={{ marginTop: 8 }}><Link href={`/jadwal?v=semua&d=${date}`}>Lihat jadwal</Link></p>
+        </section>
+      )}
 
       {rows.length === 0 && <p className="empty">Tidak ada yang clock in di tanggal ini.</p>}
       {SHIFTS.map((s) => {
