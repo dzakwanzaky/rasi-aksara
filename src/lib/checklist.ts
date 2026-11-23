@@ -12,10 +12,13 @@ export type CheckItem = {
   points?: 1 | 2 | 3;
   /** First day the item is on the checklist; earlier days don't count it (so their scores stay as they were). */
   since?: string;
+  /** First day the item is gone; that day and later don't show or count it, earlier days keep it. */
+  until?: string;
 };
 
 /** Whether an item is on the checklist of `date` (every item when no date is given). */
-export const itemOn = (item: CheckItem, date?: string) => !item.since || !date || date >= item.since;
+export const itemOn = (item: { since?: string; until?: string }, date?: string) =>
+  !date || ((!item.since || date >= item.since) && (!item.until || date < item.until));
 
 export type Section = {
   title: string;
@@ -37,6 +40,9 @@ export type Sheet = {
 
 const TOKEN = { label: "Sisa token", unit: "kWh", numeric: true };
 const RP = { label: "Jumlah", prefix: "Rp", numeric: true };
+
+/** Items Zaky crossed out (23 Nov 2026): gone from this day, still shown on older days so history stays. */
+export const TRIM_FROM = "2026-11-23";
 
 /**
  * New SOP (Zaky, 13 Nov 2026): every shift prepares bar and kitchen for the NEXT shift, so it starts ready.
@@ -177,7 +183,7 @@ export const SHEETS: Sheet[] = [
         items: [
           { key: "tanaman", text: "Shift 2 tiba, siram tanaman" },
           { key: "cek-area", points: 2, text: "Shift 2 cek kebersihan area bar, kitchen, floor, mushola, kamar mandi" },
-          { key: "lapor-bersih", text: "Shift 2 laporkan kondisi kebersihan ke Shift 1 (ada masalah? sampaikan)" },
+          { key: "lapor-bersih", until: TRIM_FROM, text: "Shift 2 laporkan kondisi kebersihan ke Shift 1 (ada masalah? sampaikan)" },
         ],
       },
       {
@@ -186,8 +192,8 @@ export const SHEETS: Sheet[] = [
           { key: "stok-kritis", text: "Info stok kritis (bahan apa yang habis/mau habis)" },
           { key: "pembelian", text: "Info pembelian hari ini (sudah beli apa, belum beli apa)" },
           { key: "equipment", text: "Kondisi equipment / masalah mesin" },
-          { key: "pending", text: "Info customer atau pesanan pending" },
-          { key: "owner", text: "Instruksi dari owner (kalau ada)" },
+          { key: "pending", until: TRIM_FROM, text: "Info customer atau pesanan pending" },
+          { key: "owner", until: TRIM_FROM, text: "Instruksi dari owner (kalau ada)" },
           { key: "reservasi", text: "Info reservasi atau event sore/malam (kalau ada)" },
         ],
       },
@@ -195,7 +201,7 @@ export const SHEETS: Sheet[] = [
         title: "Bersama",
         items: [
           { key: "token", points: 1, text: "Cek token listrik, catat sisa token, bandingkan dengan catatan opening", input: TOKEN },
-          { key: "kas", points: 2, text: "Hitung kas bersama-sama, close kasir Shift 1" },
+          { key: "kas", until: TRIM_FROM, points: 2, text: "Hitung kas bersama-sama, close kasir Shift 1" },
           { key: "terima", text: "Shift 2 konfirmasi menerima semua info + kondisi area (diterima oleh)" },
           { key: "pulang", text: "Shift 1 boleh pulang setelah konfirmasi selesai (diserahkan oleh)" },
         ],
@@ -213,7 +219,7 @@ export const SHEETS: Sheet[] = [
         items: [
           { key: "close-order", time: "21.30", text: "Close order, stop terima order baru (take away tetap boleh)" },
           { key: "info-tutup", time: "21.30", text: "Informasikan ke customer bahwa café tutup pukul 22.00" },
-          { key: "meja-kosong", points: 2, time: "21.30", text: "Mulai bersihkan meja yang sudah kosong" },
+          { key: "meja-kosong", until: TRIM_FROM, points: 2, time: "21.30", text: "Mulai bersihkan meja yang sudah kosong" },
         ],
       },
       {
@@ -262,18 +268,18 @@ export const SHEETS: Sheet[] = [
       {
         title: "Stock opname",
         items: [
-          { key: "hitung", points: 3, time: "22.00", text: "Hitung fisik semua stok bar & kitchen", link: { href: "/hitung", label: "Buka Hitung" } },
-          { key: "beli", points: 2, time: "22.00", text: "Tandai bahan yang perlu dibeli besok", link: { href: "/belanja", label: "Buka Belanja" } },
-          { key: "lapor-wa", time: "22.00", text: "Laporkan ke grup WA kalau ada yang kritis" },
+          { key: "hitung", until: TRIM_FROM, points: 3, time: "22.00", text: "Hitung fisik semua stok bar & kitchen", link: { href: "/hitung", label: "Buka Hitung" } },
+          { key: "beli", until: TRIM_FROM, points: 2, time: "22.00", text: "Tandai bahan yang perlu dibeli besok", link: { href: "/belanja", label: "Buka Belanja" } },
+          { key: "lapor-wa", until: TRIM_FROM, time: "22.00", text: "Laporkan ke grup WA kalau ada yang kritis" },
         ],
       },
       {
         title: "Rekap kasir",
         items: [
-          { key: "tutup-majoo", points: 2, time: "22.10", text: "Tutup shift di Majoo, catat total transaksi", input: { ...RP, label: "Total transaksi" } },
-          { key: "cash", points: 2, time: "22.10", text: "Hitung cash di laci kasir", input: { ...RP, label: "Cash fisik" } },
-          { key: "modal", time: "22.10", text: "Pisahkan modal Rp 200.000 untuk besok" },
-          { key: "selisih-kas", points: 2, time: "22.10", text: "Catat selisih kas (kalau ada) + keterangan" },
+          { key: "tutup-majoo", until: TRIM_FROM, points: 2, time: "22.10", text: "Tutup shift di Majoo, catat total transaksi", input: { ...RP, label: "Total transaksi" } },
+          { key: "cash", until: TRIM_FROM, points: 2, time: "22.10", text: "Hitung cash di laci kasir", input: { ...RP, label: "Cash fisik" } },
+          { key: "modal", until: TRIM_FROM, time: "22.10", text: "Pisahkan modal Rp 200.000 untuk besok" },
+          { key: "selisih-kas", until: TRIM_FROM, points: 2, time: "22.10", text: "Catat selisih kas (kalau ada) + keterangan" },
           { key: "cash-box", time: "22.10", text: "Simpan uang di cash box" },
         ],
       },
