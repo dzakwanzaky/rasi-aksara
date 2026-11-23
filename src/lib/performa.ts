@@ -1,7 +1,7 @@
 // Checklist performance per staff for the owner's dashboard (/performa, Zaky 18 Okt 2026).
 // Everything is worked out from checklist_entries: who ticked (done_by) and when (done_at).
 
-import { HOURLY_HOURS, SHEETS, hourlyKey, hoursFor, itemKey, tickKeys, type SheetId } from "./checklist";
+import { HOURLY_HOURS, SHEETS, hourlyKey, hoursFor, itemKey, itemOn, tickKeys, type SheetId } from "./checklist";
 
 export type Period = "hari" | "minggu" | "bulan";
 export const PERIODS: { id: Period; label: string }[] = [
@@ -56,7 +56,7 @@ export function minutesInto(date: string, iso: string): number {
 
 export const hhmm = (min: number) => `${String(Math.floor(min / 60)).padStart(2, "0")}.${String(min % 60).padStart(2, "0")}`;
 
-type ItemInfo = { label: string; due: number; hour?: number; points: number; since?: string };
+type ItemInfo = { label: string; due: number; hour?: number; points: number; since?: string; until?: string };
 const INFO = new Map<string, ItemInfo>();
 for (const sheet of SHEETS) {
   for (const s of sheet.sections) {
@@ -71,7 +71,7 @@ for (const sheet of SHEETS) {
       }
       const m = /^(\d{2})\.(\d{2})$/.exec(i.time ?? "");
       const due = m ? Number(m[1]) * 60 + Number(m[2]) + LATE_AFTER_MIN : SHEET_END[sheet.id];
-      INFO.set(itemKey(sheet.id, i.key), { label: `${sheet.title} · ${i.text}`, due, points: i.points ?? 1, since: i.since });
+      INFO.set(itemKey(sheet.id, i.key), { label: `${sheet.title} · ${i.text}`, due, points: i.points ?? 1, since: i.since, until: i.until });
     }
   }
 }
@@ -79,7 +79,7 @@ for (const sheet of SHEETS) {
 export const itemInfo = (key: string) => INFO.get(key);
 /** Tickable once-a-day items (not hourly), for counting what nobody ticked. */
 const DAILY = [...INFO.entries()].filter(([, v]) => v.hour == null);
-const dailyKeys = (date: string) => DAILY.filter(([, v]) => !v.since || date >= v.since).map(([k]) => k);
+const dailyKeys = (date: string) => DAILY.filter(([, v]) => itemOn(v, date)).map(([k]) => k);
 
 export type Row = { check_date: string; key: string; done: boolean; done_by: string | null; done_at: string | null };
 

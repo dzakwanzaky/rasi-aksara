@@ -45,4 +45,17 @@ describe("checklist keys", () => {
     expect(tickKeys(op, 24, "2026-11-13")).toHaveLength(13 * 6);
     expect(tickKeys(op, 24, "2026-11-14")).toHaveLength(5 * 6);
   });
+  it("drop the items Zaky crossed out from 23 Nov 2026, older days keep them", () => {
+    const sheet = (id: string) => SHEETS.find((s) => s.id === id)!;
+    const gone = ["handover:lapor-bersih", "handover:pending", "handover:owner", "handover:kas", "closing:meja-kosong",
+      "closing:hitung", "closing:beli", "closing:lapor-wa", "closing:tutup-majoo", "closing:cash", "closing:modal", "closing:selisih-kas"];
+    const before = [...tickKeys(sheet("handover"), 24, "2026-11-22"), ...tickKeys(sheet("closing"), 24, "2026-11-22")];
+    const after = [...tickKeys(sheet("handover"), 24, "2026-11-23"), ...tickKeys(sheet("closing"), 24, "2026-11-23")];
+    for (const k of gone) {
+      expect(before).toContain(k);
+      expect(after).not.toContain(k);
+    }
+    expect(after).toContain("closing:cash-box");
+    expect(after).toContain("handover:token");
+  });
 });
