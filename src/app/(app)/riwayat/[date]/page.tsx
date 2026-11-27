@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { listSessions, loadItems, loadLines } from "@/lib/data";
 import { formatQty, parseQty } from "@/lib/qty";
 import { usageOf } from "@/lib/usage";
-import { CATEGORIES, dateLabel } from "@/lib/types";
+import { CATEGORIES, dateLabel, STATUS_LABEL } from "@/lib/types";
 import { notFound } from "next/navigation";
 import { deleteSession } from "../../actions";
 import { SubmitButton } from "@/components/SubmitButton";
@@ -92,13 +92,14 @@ export default async function RiwayatTanggal({
                     <li key={r.item.id} className="use-row">
                       <div>
                         <Link className="itemlink" href={`/riwayat/bahan/${r.item.id}`}><b>{r.item.name}</b></Link>
-                        <div className="muted small">
+                        {r.stockStatus ? null : <div className="muted small">
                           kemarin {qty(parseQty(r.l?.awal, r.item), r.item.unit)}
                           {parseQty(r.l?.masuk, r.item) ? ` · masuk ${qty(parseQty(r.l?.masuk, r.item), r.item.unit)}` : ""}
                           {" · "}sisa {qty(r.sisa, r.item.unit)}
-                        </div>
+                        </div>}
                       </div>
                       <div className="use-val">
+                        {r.stockStatus && <span className={`pill ${r.stockStatus === "beli" ? "bad" : ""}`}>{STATUS_LABEL[r.stockStatus]}</span>}
                         {r.status === "used" && <><span className="use-n">{formatQty(r.used)}</span> <span className="muted small">{r.item.unit} terpakai</span></>}
                         {r.status === "same" && <span className="muted small">tidak terpakai</span>}
                         {(r.status === "up" || r.status === "unreadable") && <span className="pill warn">Perlu dicek</span>}

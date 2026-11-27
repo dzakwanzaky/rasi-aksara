@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { listSessions, loadItems, loadLines } from "@/lib/data";
 import { formatQty } from "@/lib/qty";
 import { restockNeeds, restockText } from "@/lib/restock";
-import { CATEGORIES, dateLabel } from "@/lib/types";
+import { CATEGORIES, dateLabel, isStatusItem } from "@/lib/types";
 import { CopyList } from "./CopyList";
 
 export default async function Belanja() {
@@ -23,7 +23,7 @@ export default async function Belanja() {
     ({ needs, counted, estimated } = restockNeeds(items, lines));
   }
   const delivered = [...lines.values()].filter((l) => String(l.masuk ?? "").trim() && !String(l.tersedia ?? "").trim()).length;
-  const withMin = items.filter((i) => i.min_stock && i.min_stock > 0).length;
+  const withMin = items.filter((i) => !isStatusItem(i) && i.min_stock && i.min_stock > 0).length;
 
   const text = restockText(needs, latest.count_date);
 
@@ -71,8 +71,8 @@ export default async function Belanja() {
                     <b>{n.item.name}</b>
                     {n.item.min_stock ? <span className="muted small"> · minimum {formatQty(n.item.min_stock)} {n.item.unit}</span> : null}
                   </div>
-                  <span className={`pill ${n.reason === "habis" ? "bad" : "warn"}`}>
-                    {n.reason === "habis" ? "Habis" : `Sisa ${formatQty(n.sisa)} ${n.item.unit}`}
+                  <span className={`pill ${n.reason === "menipis" ? "warn" : "bad"}`}>
+                    {n.reason === "beli" ? "Perlu beli" : n.reason === "habis" ? "Habis" : `Sisa ${formatQty(n.sisa)} ${n.item.unit}`}
                   </span>
                 </li>
               ))}

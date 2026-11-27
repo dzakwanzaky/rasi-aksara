@@ -1,4 +1,4 @@
-export const CATEGORIES = ["Packaging", "Bar", "Dapur"] as const;
+export const CATEGORIES = ["Packaging", "Bar", "Dapur", "Operasional"] as const;
 export type Category = (typeof CATEGORIES)[number];
 
 export type Item = {
@@ -35,3 +35,15 @@ export const dateLabel = (d: string) =>
   new Date(d + "T00:00:00").toLocaleDateString("id-ID", {
     weekday: "short", day: "numeric", month: "short", year: "numeric",
   });
+
+/** Operasional items (soap, cleaner, receipt paper) are not counted: staff only mark them
+ * "Masih Ada Stock" or "Perlu Beli". The choice is stored in the line's "tersedia" as "ada" / "beli". */
+export const isStatusItem = (i: { category: string }) => i.category === "Operasional";
+
+export type StockStatus = "ada" | "beli";
+export const STATUS_LABEL: Record<StockStatus, string> = { ada: "Masih Ada Stock", beli: "Perlu Beli" };
+
+export function readStatus(raw: string | null | undefined): StockStatus | null {
+  const s = String(raw ?? "").trim().toLowerCase();
+  return s === "ada" || s === "beli" ? s : null;
+}

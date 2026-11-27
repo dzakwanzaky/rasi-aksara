@@ -3,7 +3,7 @@
 import { startTransition, useEffect, useMemo, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { formatQty, parseQty, type Line } from "@/lib/qty";
-import { CATEGORIES, type Item } from "@/lib/types";
+import { CATEGORIES, isStatusItem, readStatus, STATUS_LABEL, type Item, type StockStatus } from "@/lib/types";
 import { finishCount } from "../actions";
 import { Spinner } from "@/components/SubmitButton";
 
@@ -136,7 +136,8 @@ export function CountFlow(props: {
       <p className="help">
         Tiap bahan punya 3 baris: <b>1</b> stok semalam = hasil hitung {props.prevDateText ?? "sebelumnya"} (otomatis),{" "}
         <b>2</b> barang masuk hari ini (pagi, kalau ada kiriman), <b>3</b> sisa di akhir shift. Boleh tulis <code>3 1/2</code> atau{" "}
-        <code>3,5</code>; kalau habis tulis <code>0</code>.
+        <code>3,5</code>; kalau habis tulis <code>0</code>. Barang <b>Operasional</b> (sabun, pembersih, kertas nota) tidak
+        dihitung: cukup pilih <b>Masih Ada Stock</b> atau <b>Perlu Beli</b>.
       </p>
 
       {visible.length === 0 && (
@@ -146,6 +147,32 @@ export function CountFlow(props: {
       <ul className="cards">
         {visible.map((i) => {
           const l = lines[i.id] ?? {};
+          if (isStatusItem(i)) {
+            const now = readStatus(l.tersedia);
+            const before = readStatus(l.awal);
+            const pick = (st: StockStatus) => edit(i.id, "tersedia", st);
+            return (
+              <li key={i.id} className={`card${isDone(i) ? " done" : ""}`}>
+                <div className="card-head">
+                  <div><b>{i.name}</b></div>
+                  <span className="tag">{i.category}</span>
+                </div>
+                <div className="statuspick" role="group" aria-label={`Status ${i.name}`}>
+                  <button type="button" className="ada" aria-pressed={now === "ada"} onClick={() => pick("ada")}>
+                    {now === "ada" ? "✓ " : ""}{STATUS_LABEL.ada}
+                  </button>
+                  <button type="button" className="beli" aria-pressed={now === "beli"} onClick={() => pick("beli")}>
+                    {now === "beli" ? "✓ " : ""}{STATUS_LABEL.beli}
+                  </button>
+                </div>
+                <p className="calc">
+                  {before ? <>Kemarin: <b className="status-b">{STATUS_LABEL[before]}</b>. </> : null}
+                  {now === "beli" ? "Masuk daftar Belanja." : !now ? "Pilih salah satu." : ""}
+                  <BoxState state={boxState[`${i.id}:tersedia`]} filled={!!now} />
+                </p>
+              </li>
+            );
+          }
           const kemarin = parseQty(l.awal, i);
           const sisa = parseQty(l.tersedia, i);
           const masuk = parseQty(l.masuk, i);
