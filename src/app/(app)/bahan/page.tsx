@@ -41,8 +41,13 @@ export default async function Bahan({ searchParams }: { searchParams: Promise<{ 
               <select id="pack_unit" name="pack_unit" defaultValue={editing?.pack_unit ?? "gr"}><option>gr</option><option>ml</option></select>
             </label>
             <label className="f">Stok minimum<input id="min_stock" name="min_stock" inputMode="decimal" placeholder="mis. 2" defaultValue={editing?.min_stock ?? ""} /></label>
+            <label className="check" style={{ gridColumn: "1 / -1" }}>
+              <input type="checkbox" name="status_only" defaultChecked={!!editing?.status_only} />
+              {editing?.status_only && <input type="hidden" name="was_status_only" value="1" />}
+              Tidak dihitung angka: staff cukup pilih Masih Ada Stock / Perlu Beli
+            </label>
           </div>
-          <p className="help">Kategori <b>Operasional</b> tidak dihitung jumlahnya: staff cukup pilih Masih Ada Stock / Perlu Beli, jadi satuan, kemasan dan minimum tidak dipakai.</p>
+          <p className="help">Barang yang dicentang <b>Tidak dihitung angka</b>, dan semua barang <b>Operasional</b>, tidak dihitung jumlahnya: staff cukup pilih Masih Ada Stock / Perlu Beli, jadi satuan, kemasan dan minimum tidak dipakai.</p>
           <p className="help">Isi per kemasan dipakai untuk membaca hitungan seperti “5, 329 gr” (5 kemasan + 329 gr sisa).</p>
           <div className="row">
             <SubmitButton className="btn primary">{editing ? "Simpan" : "Tambah"}</SubmitButton>

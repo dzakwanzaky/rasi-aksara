@@ -6,8 +6,9 @@ export type UsageStatus = "used" | "same" | "up" | "notcounted" | "noprev" | "un
 /** Terpakai (used) = stok kemarin + barang masuk − sisa sekarang */
 export function usageOf(item: Item, l: Partial<LineRow> | undefined) {
   // Operasional items only say "masih ada" / "perlu beli": no usage number.
-  if (isStatusItem(item)) {
-    const st = readStatus(l?.tersedia);
+  const st = isStatusItem(item) ? readStatus(l?.tersedia) : null;
+  // Older lines of an item switched to status_only still hold numbers: show those as numbers.
+  if (isStatusItem(item) && (st || !String(l?.tersedia ?? "").trim())) {
     return { kemarin: null, masuk: 0, sisa: null, used: 0, status: (st ? "status" : "notcounted") as UsageStatus, stockStatus: st };
   }
   const kemarin = parseQty(l?.awal, item);
