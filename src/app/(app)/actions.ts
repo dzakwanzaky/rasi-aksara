@@ -47,13 +47,14 @@ export async function saveItem(form: FormData) {
   const name = String(form.get("name") ?? "").trim();
   const category = String(form.get("category")) as Category;
   if (!name || !CATEGORIES.includes(category)) return;
+  const status = category === "Operasional";
   const data = {
     name,
     category,
-    unit: String(form.get("unit") ?? "").trim(),
-    pack_size: numOrNull(form.get("pack_size")),
+    unit: status ? "status" : String(form.get("unit") ?? "").trim(),
+    pack_size: status ? null : numOrNull(form.get("pack_size")),
     pack_unit: form.get("pack_unit") === "ml" ? "ml" : "gr",
-    min_stock: numOrNull(form.get("min_stock")),
+    min_stock: status ? null : numOrNull(form.get("min_stock")),
   };
   const id = form.get("id");
   if (id) {

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { restockNeeds } from "./restock";
+import { restockNeeds, restockText } from "./restock";
+import { usageOf, usageSummary } from "./usage";
 import type { Item, LineRow } from "./types";
 
 const item = (id: number, min: number | null): Item =>
@@ -26,5 +27,23 @@ describe("restockNeeds", () => {
   });
   it("skips items with nothing known", () => {
     expect(restockNeeds(items, new Map([[2, line(2, null, "3", null)]])).counted).toBe(0);
+  });
+  describe("operasional items (Masih Ada Stock / Perlu Beli)", () => {
+    const sabun: Item = { ...item(9, null), name: "Sunlight", category: "Operasional", unit: "status" };
+    it("lists an item marked perlu beli", () => {
+      const r = restockNeeds([sabun], new Map([[9, line(9, "ada", null, "beli")]]));
+      expect(r.needs).toMatchObject([{ item: { id: 9 }, reason: "beli", estimated: false }]);
+      expect(restockText(r.needs, "2026-11-27")).toContain("- Sunlight: PERLU BELI");
+    });
+    it("keeps last night's perlu beli until today's choice is made", () => {
+      expect(restockNeeds([sabun], new Map([[9, line(9, "beli", null, null)]])).needs).toMatchObject([{ estimated: true }]);
+      expect(restockNeeds([sabun], new Map([[9, line(9, "beli", null, "ada")]])).needs).toEqual([]);
+    });
+    it("never shows up as usage", () => {
+      const u = usageOf(sabun, line(9, "ada", null, "beli"));
+      expect(u).toMatchObject({ status: "status", used: 0, stockStatus: "beli" });
+      const sum = usageSummary([sabun, item(1, null)], new Map([[9, line(9, "ada", null, "beli")], [1, line(1, "5", null, "3")]]));
+      expect(sum).toEqual({ counted: 2, used: 1, check: 0, total: 2 });
+    });
   });
 });

@@ -1,10 +1,15 @@
 import { parseQty } from "./qty";
-import type { Item, LineRow } from "./types";
+import { isStatusItem, readStatus, type Item, type LineRow } from "./types";
 
-export type UsageStatus = "used" | "same" | "up" | "notcounted" | "noprev" | "unreadable";
+export type UsageStatus = "used" | "same" | "up" | "notcounted" | "noprev" | "unreadable" | "status";
 
 /** Terpakai (used) = stok kemarin + barang masuk − sisa sekarang */
 export function usageOf(item: Item, l: Partial<LineRow> | undefined) {
+  // Operasional items only say "masih ada" / "perlu beli": no usage number.
+  if (isStatusItem(item)) {
+    const st = readStatus(l?.tersedia);
+    return { kemarin: null, masuk: 0, sisa: null, used: 0, status: (st ? "status" : "notcounted") as UsageStatus, stockStatus: st };
+  }
   const kemarin = parseQty(l?.awal, item);
   const masuk = parseQty(l?.masuk, item) ?? 0;
   const sisa = parseQty(l?.tersedia, item);
@@ -17,7 +22,7 @@ export function usageOf(item: Item, l: Partial<LineRow> | undefined) {
     used = kemarin + masuk - sisa;
     status = used > 1e-9 ? "used" : used < -1e-9 ? "up" : "same";
   }
-  return { kemarin, masuk, sisa, used, status };
+  return { kemarin, masuk, sisa, used, status, stockStatus: null };
 }
 
 export function usageSummary(items: Item[], lines: Map<number, LineRow>) {

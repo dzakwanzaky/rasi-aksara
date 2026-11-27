@@ -1,7 +1,7 @@
 import { formatQty, parseQty } from "./qty";
-import { CATEGORIES, dateLabel, type Item, type LineRow } from "./types";
+import { CATEGORIES, dateLabel, isStatusItem, readStatus, type Item, type LineRow } from "./types";
 
-export type Need = { item: Item; sisa: number; reason: "habis" | "menipis"; estimated: boolean };
+export type Need = { item: Item; sisa: number; reason: "habis" | "menipis" | "beli"; estimated: boolean };
 
 /** Stock on hand for one item: the end-of-shift count when it is filled in, otherwise
  * last night's count plus what came in today. Null when neither is known. */
@@ -20,6 +20,17 @@ export function restockNeeds(items: Item[], lines: Map<number, LineRow>) {
   let counted = 0;
   let estimated = 0;
   for (const item of items) {
+    if (isStatusItem(item)) {
+      // Today's choice, or last night's when today's is not made yet.
+      const line = lines.get(item.id);
+      const own = readStatus(line?.tersedia);
+      const status = own ?? readStatus(line?.awal);
+      if (!status) continue;
+      counted++;
+      if (!own) estimated++;
+      if (status === "beli") needs.push({ item, sisa: 0, reason: "beli", estimated: !own });
+      continue;
+    }
     const now = currentStock(item, lines.get(item.id));
     if (!now) continue;
     counted++;
@@ -37,7 +48,7 @@ export function restockText(needs: Need[], countDate: string) {
     ...CATEGORIES.flatMap((c) => {
       const g = needs.filter((n) => n.item.category === c);
       return g.length
-        ? ["", `*${c}*`, ...g.map((n) => `- ${n.item.name}: ${n.reason === "habis" ? "HABIS" : `sisa ${formatQty(n.sisa)} ${n.item.unit}`}${n.item.min_stock ? ` (min ${formatQty(n.item.min_stock)})` : ""}`)]
+        ? ["", `*${c}*`, ...g.map((n) => `- ${n.item.name}: ${n.reason === "beli" ? "PERLU BELI" : n.reason === "habis" ? "HABIS" : `sisa ${formatQty(n.sisa)} ${n.item.unit}`}${n.item.min_stock ? ` (min ${formatQty(n.item.min_stock)})` : ""}`)]
         : [];
     }),
   ].join("\n");

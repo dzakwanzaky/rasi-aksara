@@ -3,7 +3,7 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { listSessions } from "@/lib/data";
 import { formatQty } from "@/lib/qty";
-import { dateLabel, type Item, type LineRow } from "@/lib/types";
+import { dateLabel, isStatusItem, STATUS_LABEL, type Item, type LineRow } from "@/lib/types";
 import { usageOf } from "@/lib/usage";
 
 /** One item across every count: what was left and how much was used each day. */
@@ -24,7 +24,7 @@ export default async function RiwayatBahan({ params }: { params: Promise<{ id: s
     <>
       <Link className="back" href="/riwayat">← Semua riwayat</Link>
       <p className="eyebrow">Riwayat bahan · {it.category}</p>
-      <h2 className="big">{it.name} <span className="unit-tag">{it.unit || "satuan?"}</span></h2>
+      <h2 className="big">{it.name} {!isStatusItem(it) && <span className="unit-tag">{it.unit || "satuan?"}</span>}</h2>
       <ul className="list" style={{ marginTop: 14 }}>
         {sessions.map((s) => {
           const l = byS.get(s.id);
@@ -34,7 +34,7 @@ export default async function RiwayatBahan({ params }: { params: Promise<{ id: s
               <div>
                 <Link className="itemlink" href={`/riwayat/${s.count_date}`}><b>{dateLabel(s.count_date)}</b></Link>
                 <div className="muted small">
-                  {u.status === "notcounted" ? "belum dihitung" : `sisa ${q(u.sisa)}${u.masuk ? ` · masuk ${q(u.masuk)}` : ""}`}
+                  {u.status === "notcounted" ? "belum dihitung" : u.stockStatus ? STATUS_LABEL[u.stockStatus] : `sisa ${q(u.sisa)}${u.masuk ? ` · masuk ${q(u.masuk)}` : ""}`}
                 </div>
               </div>
               <div className="use-val">

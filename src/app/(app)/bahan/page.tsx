@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { formatQty } from "@/lib/qty";
-import { CATEGORIES, sortItems, type Item } from "@/lib/types";
+import { CATEGORIES, isStatusItem, sortItems, type Item } from "@/lib/types";
 import { archiveItem, saveItem, setMinStock } from "../actions";
 import { isAdmin } from "@/lib/admin";
 import { SubmitButton } from "@/components/SubmitButton";
@@ -42,6 +42,7 @@ export default async function Bahan({ searchParams }: { searchParams: Promise<{ 
             </label>
             <label className="f">Stok minimum<input id="min_stock" name="min_stock" inputMode="decimal" placeholder="mis. 2" defaultValue={editing?.min_stock ?? ""} /></label>
           </div>
+          <p className="help">Kategori <b>Operasional</b> tidak dihitung jumlahnya: staff cukup pilih Masih Ada Stock / Perlu Beli, jadi satuan, kemasan dan minimum tidak dipakai.</p>
           <p className="help">Isi per kemasan dipakai untuk membaca hitungan seperti “5, 329 gr” (5 kemasan + 329 gr sisa).</p>
           <div className="row">
             <SubmitButton className="btn primary">{editing ? "Simpan" : "Tambah"}</SubmitButton>
@@ -82,12 +83,13 @@ export default async function Bahan({ searchParams }: { searchParams: Promise<{ 
                     <b>{i.name}</b>
                     <br />
                     <small className="muted">
-                      {i.unit || "satuan belum diisi"}
+                      {isStatusItem(i) ? "Masih Ada Stock / Perlu Beli" : i.unit || "satuan belum diisi"}
                       {i.pack_size ? ` · ${formatQty(i.pack_size)} ${i.pack_unit}/kemasan` : ""}
                       {i.min_stock ? ` · min ${formatQty(i.min_stock)}` : ""}
                     </small>
                   </div>
-                  {admin && <div className="row">
+                  {admin && isStatusItem(i) && <Link className="btn small" href={`/bahan?edit=${i.id}`}>Ubah</Link>}
+                  {admin && !isStatusItem(i) && <div className="row">
                     <form action={setMinStock} className="row minform">
                       <input type="hidden" name="id" value={i.id} />
                       <label className="small muted" htmlFor={`min-${i.id}`}>Min</label>
