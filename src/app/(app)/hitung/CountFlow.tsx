@@ -97,7 +97,8 @@ export function CountFlow(props: {
     timer.current = setTimeout(flush, 600);
   }
 
-  const isDone = (i: Item) => String(lines[i.id]?.tersedia ?? "").trim() !== "";
+  const isDone = (i: Item) =>
+    isStatusItem(i) ? readStatus(lines[i.id]?.tersedia) != null : String(lines[i.id]?.tersedia ?? "").trim() !== "";
   const done = items.filter(isDone).length;
   const ql = q.trim().toLowerCase();
   const visible = items.filter(

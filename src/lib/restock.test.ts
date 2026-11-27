@@ -39,6 +39,11 @@ describe("restockNeeds", () => {
       expect(restockNeeds([sabun], new Map([[9, line(9, "beli", null, null)]])).needs).toMatchObject([{ estimated: true }]);
       expect(restockNeeds([sabun], new Map([[9, line(9, "beli", null, "ada")]])).needs).toEqual([]);
     });
+    it("counts a packaging item switched to status_only by status, keeping its older numbers", () => {
+      const cup: Item = { ...item(4, 50), status_only: true };
+      expect(restockNeeds([cup], new Map([[4, line(4, "80", null, "beli")]])).needs).toMatchObject([{ reason: "beli" }]);
+      expect(usageOf(cup, line(4, "80", null, "60"))).toMatchObject({ status: "used", used: 20 });
+    });
     it("never shows up as usage", () => {
       const u = usageOf(sabun, line(9, "ada", null, "beli"));
       expect(u).toMatchObject({ status: "status", used: 0, stockStatus: "beli" });

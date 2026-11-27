@@ -47,14 +47,17 @@ export async function saveItem(form: FormData) {
   const name = String(form.get("name") ?? "").trim();
   const category = String(form.get("category")) as Category;
   if (!name || !CATEGORIES.includes(category)) return;
-  const status = category === "Operasional";
+  const status = category === "Operasional" || form.get("status_only") === "on";
   const data = {
     name,
     category,
-    unit: status ? "status" : String(form.get("unit") ?? "").trim(),
-    pack_size: status ? null : numOrNull(form.get("pack_size")),
+    // Keep the unit of an item switched to status_only, so its older counts still read.
+    unit: category === "Operasional" ? "status" : String(form.get("unit") ?? "").trim(),
+    pack_size: numOrNull(form.get("pack_size")),
     pack_unit: form.get("pack_unit") === "ml" ? "ml" : "gr",
-    min_stock: status ? null : numOrNull(form.get("min_stock")),
+    min_stock: category === "Operasional" ? null : numOrNull(form.get("min_stock")),
+    // Only sent when it matters, so saving keeps working before migration 0022 adds the column.
+    ...(status || form.get("was_status_only") ? { status_only: status } : {}),
   };
   const id = form.get("id");
   if (id) {

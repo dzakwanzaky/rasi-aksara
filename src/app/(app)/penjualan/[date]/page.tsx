@@ -6,7 +6,7 @@ import { loadLines } from "@/lib/data";
 import { rupiah } from "@/lib/laporan";
 import { formatQty } from "@/lib/qty";
 import { expectedUsage, verdict, type Menu, type RecipeLine } from "@/lib/sales";
-import { CATEGORIES, dateLabel, sortItems, type Item } from "@/lib/types";
+import { CATEGORIES, dateLabel, isStatusItem, sortItems, type Item } from "@/lib/types";
 import { usageOf } from "@/lib/usage";
 import { deleteSalesDay } from "../actions";
 import { SubmitButton } from "@/components/SubmitButton";
@@ -67,7 +67,7 @@ export default async function PenjualanTanggal({
     let state: State;
     if (!item.active) state = "notonlist";
     else if (!e.readable) state = "nounit";
-    else if (u.status === "notcounted" || u.status === "noprev" || u.status === "unreadable") state = "nocount";
+    else if (isStatusItem(item) || u.status === "notcounted" || u.status === "noprev" || u.status === "unreadable") state = "nocount";
     else state = verdict(e.amount, u.used);
     const gap = u.used - e.amount;
     return { item, e, used: u.used, state, gap, rel: e.amount ? Math.abs(gap) / e.amount : 0 };
@@ -147,7 +147,7 @@ export default async function PenjualanTanggal({
                     {x.state === "lebih" && <span className="pill bad">Lebih {q(x.gap, x.item.unit)}</span>}
                     {x.state === "kurang" && <span className="pill warn">Kurang {q(-x.gap, x.item.unit)}</span>}
                     {x.state === "nounit" && <span className="muted small">isi ukuran kemasan</span>}
-                    {x.state === "nocount" && <span className="muted small">belum dihitung</span>}
+                    {x.state === "nocount" && <span className="muted small">{isStatusItem(x.item) ? "tidak dihitung angka" : "belum dihitung"}</span>}
                     {x.state === "notonlist" && <span className="muted small">tidak ada di stok opname</span>}
                   </div>
                 </li>
